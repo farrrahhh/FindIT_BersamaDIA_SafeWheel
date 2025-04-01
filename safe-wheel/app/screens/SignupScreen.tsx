@@ -51,6 +51,7 @@ export default function SignupScreen({ navigation }: Props) {
   const [date, setDate] = useState(new Date())
   const [showSexDropdown, setShowSexDropdown] = useState(false)
   const [showBloodTypeDropdown, setShowBloodTypeDropdown] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   const sexOptions = [
     { label: "Male", value: "male" },
@@ -144,12 +145,57 @@ export default function SignupScreen({ navigation }: Props) {
     setShowDatePicker(true)
   }
 
+  // Reusable input function; adds an eye button for password field
   const renderInputField = (
     label: string,
     field: keyof FormData,
     keyboardType?: KeyboardTypeOptions,
     secure?: boolean,
+    placeholder?: string
   ) => {
+    // Special case for password field
+    // Inside your renderInputField function:
+
+  // In your renderInputField function, update the password case as follows:
+
+    if (field === "password") {
+      return (
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>{label}</Text>
+          <View style={styles.passwordContainer}>
+            <TextInput
+              style={[
+                styles.input,
+                styles.passwordInput,
+                errors.includes(field) && styles.inputError
+              ]}
+              value={formData[field]}
+              onChangeText={(text) => updateField(field, text)}
+              keyboardType={keyboardType}
+              secureTextEntry={!showPassword}
+              autoCapitalize="none"
+              accessibilityLabel={label}
+              placeholder={placeholder || "Enter your password"}
+              placeholderTextColor="#a99fd6"
+            />
+            <TouchableOpacity
+              onPress={() => setShowPassword((prev) => !prev)}
+              style={styles.eyeButton}
+              accessibilityLabel="Toggle password visibility"
+            >
+              <Text style={styles.eyeIcon}>{showPassword ? "🙈" : "👁"}</Text>
+            </TouchableOpacity>
+          </View>
+          {errors.includes(field) && (
+            <Text style={styles.errorText}>
+              Please enter a valid {label.toLowerCase()}
+            </Text>
+          )}
+        </View>
+      )
+    }
+
+    // Default input for other fields
     return (
       <View style={styles.inputContainer}>
         <Text style={styles.label}>{label}</Text>
@@ -161,6 +207,7 @@ export default function SignupScreen({ navigation }: Props) {
           secureTextEntry={secure}
           autoCapitalize="none"
           accessibilityLabel={label}
+          placeholder={placeholder || `Enter your ${label.toLowerCase()}`}
           placeholderTextColor="#a99fd6"
         />
         {errors.includes(field) && <Text style={styles.errorText}>Please enter a valid {label.toLowerCase()}</Text>}
@@ -192,9 +239,9 @@ export default function SignupScreen({ navigation }: Props) {
           <Text style={styles.header}>Create Account</Text>
 
           <View style={styles.formContainer}>
-            {renderInputField("Email", "email", "email-address")}
-            {renderInputField("Password", "password", undefined, true)}
-            {renderInputField("Username", "username")}
+            {renderInputField("Email", "email", "email-address", false, "Enter your email")}
+            {renderInputField("Password", "password", undefined, true, "Enter your password")}
+            {renderInputField("Username", "username", undefined, false, "Enter your username")}
 
             {/* Custom Sex Dropdown */}
             <View style={[styles.inputContainer, styles.dropdownContainer]}>
@@ -310,7 +357,7 @@ export default function SignupScreen({ navigation }: Props) {
               {errors.includes("bloodType") && <Text style={styles.errorText}>Please select your blood type</Text>}
             </View>
 
-            {renderInputField("Emergency Number", "emergencyNumber", "phone-pad")}
+            {renderInputField("Emergency Number", "emergencyNumber", "phone-pad", false, "Enter your phone number")}
           </View>
 
           <TouchableOpacity
@@ -319,6 +366,15 @@ export default function SignupScreen({ navigation }: Props) {
             accessibilityLabel="Create Account"
           >
             <Text style={styles.buttonText}>Create Account</Text>
+          </TouchableOpacity>
+        
+          <TouchableOpacity
+            onPress={() => navigation.navigate('Login')}
+            style={styles.loginLink}
+          >
+            <Text style={styles.loginText}>
+              Already have an account? <Text style={styles.loginHighlight}>Log In</Text>
+            </Text>
           </TouchableOpacity>
         </SafeAreaView>
       </ScrollView>
@@ -492,5 +548,34 @@ const styles = StyleSheet.create({
     color: "#493d9e",
     fontSize: 16,
     fontWeight: "bold",
+  },
+  loginLink: {
+    marginTop: 20,
+    alignItems: "center",
+  },
+  loginText: {
+    color: "#8174a0",
+    fontSize: 16,
+  },
+  loginHighlight: {
+    color: "#493d9e",
+    fontWeight: "600",
+  },
+  passwordContainer: {
+    position: "relative",
+    width: "100%", // ensures the container spans full width
+  },
+  passwordInput: {
+    paddingRight: 40, // extra right padding to leave space for the eye icon
+  },
+  eyeButton: {
+    position: "absolute",
+    right: 10,
+    top: "50%",
+    transform: [{ translateY: -10 }], // adjust translateY if needed based on font size
+  },
+  eyeIcon: {
+    fontSize: 18,
+    color: "#493d9e",
   },
 })

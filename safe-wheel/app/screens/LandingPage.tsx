@@ -48,6 +48,7 @@ export default function LandingPage() {
           <View style={styles.buttonContainer}>
             <TouchableOpacity
               style={[styles.button, styles.loginButton]}
+              onPress={() => navigation.navigate('Login')}
               accessibilityLabel="Login"
               accessibilityRole="button"
             >

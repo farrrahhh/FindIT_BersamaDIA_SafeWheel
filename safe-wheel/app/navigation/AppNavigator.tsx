@@ -3,11 +3,13 @@ import { createStackNavigator } from '@react-navigation/stack';
 // app/navigation/AppNavigator.tsx
 import LandingPage from '../screens/LandingPage'; // Updated path
 import SignupScreen from '../screens/SignupScreen';
+import LoginScreen from '@/screens/LoginScreen';
 
 // Create stack navigator first
 export type RootStackParamList = {
   Landing: undefined;
   Signup: undefined; // Must match the name used in navigation.navigate()
+  Login: undefined; // Add Login screen if needed
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -28,6 +30,11 @@ export default function AppNavigator() {
       <Stack.Screen
         name='Signup'
         component={SignupScreen}
+      />
+
+      <Stack.Screen
+        name="Login"
+        component={LoginScreen}
       />
     </Stack.Navigator>
   );
