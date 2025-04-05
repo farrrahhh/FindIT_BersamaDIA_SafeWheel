@@ -76,6 +76,22 @@ app.post("/api/login", async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
+// ====== GET ALL USERS ======
+app.get("/api/users", async (req, res) => {
+  try {
+    const users = await UserWheelchair.findAll({
+      attributes: { exclude: ["user_password"] },
+      include: {
+        model: UserGuardian,
+        attributes: ["guardian_email", "guardian_name"]
+      }
+    });
+    res.json(users);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
 
 // Start server
 const startServer = async () => {
