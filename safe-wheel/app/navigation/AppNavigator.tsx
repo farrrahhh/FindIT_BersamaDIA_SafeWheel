@@ -4,7 +4,8 @@ import LandingPage from '../screens/LandingPage.tsx';
 import SignupScreen from '../screens/SignupScreen.tsx';
 import LoginScreen from '@/screens/LoginScreen.tsx';
 import RegisterChoices from '@/screens/RegisterChoices.tsx';
-
+import UserLocationScreen from '@/screens/UserLocationScreen.tsx';
+import Alert from '@/screens/Alert.tsx';
 // Create stack navigator first
 export type RootStackParamList = {
   Landing: undefined;
@@ -40,6 +41,15 @@ export default function AppNavigator() {
         name="Login"
         component={LoginScreen}
       />
+      <Stack.Screen
+        name="Alert"
+        component={Alert}
+      />
+      <Stack.Screen
+        name="UserLocation"
+        component={UserLocationScreen}
+      />
+
     </Stack.Navigator>
   );
 }

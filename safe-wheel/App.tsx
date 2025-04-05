@@ -5,11 +5,13 @@ import AppNavigator from './app/navigation/AppNavigator';
 import UserLocationScreen from './app/screens/UserLocationScreen';
 import Homepage from './app/screens/Homepage';
 import Profile from './app/screens/Profile';
+import Alert from './app/screens/Alert';
 export default function App() { // Must be default export
   return (
-    // <NavigationContainer>
-    //   <AppNavigator />
-    // </NavigationContainer>
-    <Profile />
+    <NavigationContainer>
+      {/* <AppNavigator /> */}
+      <Alert />
+    </NavigationContainer>
+    
   );
 }
