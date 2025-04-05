@@ -11,14 +11,22 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "allowImportingTsExtensions": true,  // Optional: useful if you import .ts/.tsx files directly
+    "moduleResolution": "node16",          // Explicitly set to match Node resolution
+    "module": "Node16",                    // Required when moduleResolution is set to Node16
+    "types": ["expo"]
   },
   "include": [
-    "**/*.ts",
-    "**/*.tsx",
+    "app/**/*.ts",
+    "app/**/*.tsx",
     ".expo/types/**/*.ts",
-    "expo-env.d.ts",
-    "node_modules/@types"
+    "expo-env.d.ts"
   ],
-  "exclude": ["node_modules", "babel.config.js", "metro.config.js"]
+  "exclude": [
+    "node_modules",
+    "babel.config.js",
+    "metro.config.js",
+    "jest.config.js"
+  ]
 }

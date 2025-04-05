@@ -58,7 +58,7 @@ export default function LandingPage() {
             {/* Update Sign Up button */}
             <TouchableOpacity
               style={[styles.button, styles.signupButton]}
-              onPress={() => navigation.navigate('Signup')}
+              onPress={() => navigation.navigate('RegisterChoices')}
               accessibilityLabel="Signup"
               accessibilityRole="button"
             >
