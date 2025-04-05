@@ -1,2 +1,2 @@
 // app/index.tsx
-export { default } from './navigation/AppNavigator';
+export AppNavigator from './navigation/AppNavigator.tsx';
