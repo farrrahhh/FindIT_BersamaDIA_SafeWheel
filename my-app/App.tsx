@@ -1,6 +1,7 @@
 import './global.css';
 import { Text, View } from 'react-native';
-import LandingPage from './components/LandingPage';
+import { useFonts } from 'expo-font';
+
 
 export default function App() {
   return (
