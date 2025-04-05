@@ -1,164 +1,111 @@
-/* ********************************************
- * Public Constants for Notes
- ******************************************** */
+#include <Wire.h>
+#include <MPU6050.h>
+#include <MAX30100_PulseOximeter.h>
+#include <TinyGPSPlus.h>
+#include <HardwareSerial.h>
 
- #define NOTE_B0 31
- #define NOTE_C1 33
- #define NOTE_CS1 35
- #define NOTE_D1 37
- #define NOTE_DS1 39
- #define NOTE_E1 41
- #define NOTE_F1 44
- #define NOTE_FS1 46
- #define NOTE_G1 49
- #define NOTE_GS1 52
- #define NOTE_A1 55
- #define NOTE_AS1 58
- #define NOTE_B1 62
- #define NOTE_C2 65
- #define NOTE_CS2 69
- #define NOTE_D2 73
- #define NOTE_DS2 78
- #define NOTE_E2 82
- #define NOTE_F2 87
- #define NOTE_FS2 93
- #define NOTE_G2 98
- #define NOTE_GS2 104
- #define NOTE_A2 110
- #define NOTE_AS2 117
- #define NOTE_B2 123
- #define NOTE_C3 131
- #define NOTE_CS3 139
- #define NOTE_D3 147
- #define NOTE_DS3 156
- #define NOTE_E3 165
- #define NOTE_F3 175
- #define NOTE_FS3 185
- #define NOTE_G3 196
- #define NOTE_GS3 208
- #define NOTE_A3 220
- #define NOTE_AS3 233
- #define NOTE_B3 247
- #define NOTE_C4 262
- #define NOTE_CS4 277
- #define NOTE_D4 294
- #define NOTE_DS4 311
- #define NOTE_E4 330
- #define NOTE_F4 349
- #define NOTE_FS4 370
- #define NOTE_G4 392
- #define NOTE_GS4 415
- #define NOTE_A4 440
- #define NOTE_AS4 466
- #define NOTE_B4 494
- #define NOTE_C5 523
- #define NOTE_CS5 554
- #define NOTE_D5 587
- #define NOTE_DS5 622
- #define NOTE_E5 659
- #define NOTE_F5 698
- #define NOTE_FS5 740
- #define NOTE_G5 784
- #define NOTE_GS5 831
- #define NOTE_A5 880
- #define NOTE_AS5 932
- #define NOTE_B5 988
- #define NOTE_C6 1047
- #define NOTE_CS6 1109
- #define NOTE_D6 1175
- #define NOTE_DS6 1245
- #define NOTE_E6 1319
- #define NOTE_F6 1397
- #define NOTE_FS6 1480
- #define NOTE_G6 1568
- #define NOTE_GS6 1661
- #define NOTE_A6 1760
- #define NOTE_AS6 1865
- #define NOTE_B6 1976
- #define NOTE_C7 2093
- #define NOTE_CS7 2217
- #define NOTE_D7 2349
- #define NOTE_DS7 2489
- #define NOTE_E7 2637
- #define NOTE_F7 2794
- #define NOTE_FS7 2960
- #define NOTE_G7 3136
- #define NOTE_GS7 3322
- #define NOTE_A7 3520
- #define NOTE_B7 3951
- #define NOTE_C8 4186
- #define NOTE_CS8 4435
- #define NOTE_D8 4699
- #define NOTE_DS8 4978
- 
- #include <Wire.h>
- #include <Adafruit_MPU6050.h>
- #include <Adafruit_Sensor.h>
- 
- Adafruit_MPU6050 mpu;
- 
- #define BUZZER_PIN 18 // ESP32 pin GPIO18 connected to piezo buzzer
- const float threshold = 25.0; // Threshold sudut kemiringan
- 
- int melody[] = {
-   NOTE_C4, NOTE_G3, NOTE_G3, NOTE_A3, NOTE_G3, 0, NOTE_B3, NOTE_C4
- };
- 
- int noteDurations[] = {
-   4, 8, 8, 4, 4, 4, 4, 4
- };
- 
- void setup() {
-   Serial.begin(115200);
- 
-   // Inisialisasi MPU6050
-   if (!mpu.begin()) {
-     Serial.println("Failed to find MPU6050 chip");
-     while (1) {
-       delay(10);
-     }
-   }
-   Serial.println("MPU6050 Found!");
- 
-   mpu.setAccelerometerRange(MPU6050_RANGE_8_G);
-   mpu.setGyroRange(MPU6050_RANGE_500_DEG);
-   mpu.setFilterBandwidth(MPU6050_BAND_5_HZ);
- 
-   pinMode(BUZZER_PIN, OUTPUT); // Setel pin buzzer sebagai output
- }
- 
- void loop() {
-   sensors_event_t a, g, temp;
-   mpu.getEvent(&a, &g, &temp);
- 
-   // Hitung sudut kemiringan
-   float roll = atan2(a.acceleration.y, a.acceleration.z) * 180 / PI;
-   float pitch = atan2(-a.acceleration.x, sqrt(a.acceleration.y * a.acceleration.y + a.acceleration.z * a.acceleration.z)) * 180 / PI;
- 
-   Serial.print("Roll: ");
-   Serial.println(roll);
-   Serial.print(", Pitch: ");
-   Serial.println(pitch);
- 
-   // Cek apakah sudut kemiringan melebihi threshold
-   if (abs(roll) > threshold || abs(pitch) > threshold) {
-     playMelody();
-     Serial.println("Threshold exceeded! Buzzer activated.");
-   } else {
-     noTone(BUZZER_PIN);
-   }
- 
-   delay(500);
- }
- 
- void playMelody() {
-   for (int thisNote = 0; thisNote < 8; thisNote++) {
-     int noteDuration = 1000 / noteDurations[thisNote];
-     tone(BUZZER_PIN, melody[thisNote], noteDuration);
- 
-     int pauseBetweenNotes = noteDuration * 1.30;
-     delay(pauseBetweenNotes);
-     noTone(BUZZER_PIN);
-   }
- }
- 
+// ================= PIN GPS ===================
+#define RXD2 16
+#define TXD2 17
+#define GPS_BAUD 9600
+
+HardwareSerial gpsSerial(2);  // UART2 di ESP32
+TinyGPSPlus gps;
+
+// ================= MPU6050 ===================
+MPU6050 mpu;
+float pitch, roll;
+const float pitchThreshold = 30.0;
+const float rollThreshold = 30.0;
+
+// ================= MAX30100 ==================
+PulseOximeter pox;
+uint32_t lastReport = 0;
+#define REPORTING_PERIOD_MS 1000
+
+void setup() {
+  Serial.begin(115200);
+  Wire.begin();
+
+  // Start GPS
+  gpsSerial.begin(GPS_BAUD, SERIAL_8N1, RXD2, TXD2);
+  Serial.println("GPS Serial2 started at 9600 baud");
+
+  // Start MPU6050
+  mpu.initialize();
+  if (!mpu.testConnection()) {
+    Serial.println("❌ MPU6050 tidak terdeteksi!");
+    while (1);
+  }
+  Serial.println("✅ MPU6050 terdeteksi");
+
+  // Start MAX30100
+  if (!pox.begin()) {
+    Serial.println("❌ MAX30100 tidak terdeteksi!");
+    while (1);
+  }
+  pox.setIRLedCurrent(MAX30100_LED_CURR_7_6MA);
+  Serial.println("✅ MAX30100 terdeteksi");
+}
+
+void loop() {
+  pox.update();
+
+  // Baca & tampilkan data mentah dari GPS (debug)
+  while (gpsSerial.available()) {
+    char c = gpsSerial.read();
+    Serial.write(c); // tampilkan data mentah NMEA
+    gps.encode(c);   // parsing ke TinyGPSPlus
+  }
+
+  // MPU6050
+  int16_t ax, ay, az, gx, gy, gz;
+  mpu.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
+  pitch = atan2(ax, sqrt(ay * ay + az * az)) * 180 / PI;
+  roll  = atan2(ay, sqrt(ax * ax + az * az)) * 180 / PI;
+
+  // Tampilkan tiap detik
+  if (millis() - lastReport > REPORTING_PERIOD_MS) {
+    lastReport = millis();
+
+    Serial.println("\n========== UPDATE ==========");
+    Serial.print("BPM: ");
+    Serial.print(pox.getHeartRate());
+    Serial.print(" | SpO2: ");
+    Serial.println(pox.getSpO2());
+
+    Serial.print("Pitch: ");
+    Serial.print(pitch, 2);
+    Serial.print(" | Roll: ");
+    Serial.print(roll, 2);
+
+    if (abs(pitch) > pitchThreshold || abs(roll) > rollThreshold) {
+      Serial.println(" --> 🚨 JATUH!");
+
+      if (gps.location.isValid()) {
+        Serial.print("✅ Lokasi: ");
+        Serial.print(gps.location.lat(), 6);
+        Serial.print(", ");
+        Serial.println(gps.location.lng(), 6);
+      } else {
+        Serial.println("❌ Lokasi belum fix");
+      }
+    } else {
+      Serial.println(" --> Aman ✅");
+    }
+
+    Serial.print("📡 Satelit: ");
+    Serial.println(gps.satellites.value());
+
+    Serial.print("⏰ Waktu (UTC): ");
+    Serial.print(gps.time.hour());
+    Serial.print(":");
+    Serial.print(gps.time.minute());
+    Serial.print(":");
+    Serial.println(gps.time.second());
+
+    Serial.println("-------------------------------");
+  }
+
+  delay(10);
+}
