@@ -1,2 +1,7 @@
+
+./backend/node_modules
+node_modules
+package.json
+package-lock.json
 .vscode
 ./backend/node_modules
