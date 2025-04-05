@@ -3,12 +3,12 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import bcrypt from 'bcryptjs';
+import { PrismaClient } from '@prisma/client';
 
-// Import models dari CommonJS
-import { sequelize, UserWheelchair, UserGuardian } from './models.js';
 // Load .env
 dotenv.config();
 
+const prisma = new PrismaClient();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -30,18 +30,20 @@ app.post("/api/signup", async (req, res) => {
   }
 
   try {
-    const existingUser = await UserWheelchair.findByPk(user_email);
+    const existingUser = await prisma.userWheelchair.findUnique({ where: { user_email } });
     if (existingUser) {
       return res.status(409).json({ message: "User already exists" });
     }
 
     const hashedPassword = await bcrypt.hash(user_password, 10);
 
-    const user = await UserWheelchair.create({
-      user_email,
-      user_password: hashedPassword,
-      user_name,
-      guardian_email
+    const user = await prisma.userWheelchair.create({
+      data: {
+        user_email,
+        user_password: hashedPassword,
+        user_name,
+        guardian_email
+      }
     });
 
     res.status(201).json({ message: "User registered successfully", user });
@@ -60,7 +62,7 @@ app.post("/api/login", async (req, res) => {
   }
 
   try {
-    const user = await UserWheelchair.findByPk(user_email);
+    const user = await prisma.userWheelchair.findUnique({ where: { user_email } });
     if (!user) {
       return res.status(401).json({ message: "Invalid email or password" });
     }
@@ -76,14 +78,25 @@ app.post("/api/login", async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
+
 // ====== GET ALL USERS ======
 app.get("/api/users", async (req, res) => {
   try {
-    const users = await UserWheelchair.findAll({
-      attributes: { exclude: ["user_password"] },
-      include: {
-        model: UserGuardian,
-        attributes: ["guardian_email", "guardian_name"]
+    const users = await prisma.userWheelchair.findMany({
+      select: {
+        user_email: true,
+        user_name: true,
+        sex: true,
+        dob: true,
+        bloodtype: true,
+        emergency_number: true,
+        location_coordinates: true,
+        guardian: {
+          select: {
+            guardian_email: true,
+            guardian_name: true
+          }
+        }
       }
     });
     res.json(users);
@@ -94,17 +107,6 @@ app.get("/api/users", async (req, res) => {
 });
 
 // Start server
-const startServer = async () => {
-  try {
-    await sequelize.authenticate();
-    console.log("Database Connected...");
-
-    app.listen(PORT, () => {
-      console.log(`Server is running on port ${PORT}`);
-    });
-  } catch (error) {
-    console.error("Unable to connect to the database:", error);
-  }
-};
-
-startServer();
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});

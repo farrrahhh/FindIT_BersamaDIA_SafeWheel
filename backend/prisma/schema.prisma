@@ -1,0 +1,60 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model UserGuardian {
+  guardian_email    String           @id
+  guardian_password String
+  guardian_name     String
+  users             UserWheelchair[]
+}
+
+model UserWheelchair {
+  user_email           String                  @id
+  user_password        String
+  user_name            String
+  sex                  String?
+  dob                  DateTime?
+  bloodtype            String?
+  emergency_number     String?
+  guardian_email       String?
+  location_coordinates String?
+  guardian             UserGuardian?           @relation(fields: [guardian_email], references: [guardian_email])
+  healthTimestamps     UserHealthTimestamp[]
+  alerts               UserAlertNotification[]
+}
+
+model UserHealthTimestamp {
+  user_email     String
+  user_timestamp DateTime
+
+  user   UserWheelchair @relation(fields: [user_email], references: [user_email])
+  health HealthItem?
+
+  @@id([user_email, user_timestamp])
+}
+
+model HealthItem {
+  user_email      String
+  user_timestamp  DateTime
+  oxylevel        Int
+  heartrate       Int
+
+  healthTimestamp UserHealthTimestamp @relation(fields: [user_email, user_timestamp], references: [user_email, user_timestamp])
+
+  @@id([user_email, user_timestamp])
+}
+
+model UserAlertNotification {
+  user_email      String
+  alert_timestamp DateTime
+
+  user UserWheelchair @relation(fields: [user_email], references: [user_email])
+
+  @@id([user_email, alert_timestamp])
+}
