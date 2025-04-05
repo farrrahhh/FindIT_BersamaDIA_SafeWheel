@@ -1,0 +1,74 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+enum Sex {
+  male
+  female
+  other
+}
+model UserWheelchair {
+  user_email           String   @id
+  user_password        String
+  user_name            String
+  sex                  Sex?
+  dob                  DateTime?
+  bloodtype            String?
+  emergency_number     String?
+  location_coordinates String?
+
+  guardians            UserGuardian[]        // satu user bisa punya banyak guardian
+  healthTimestamps     UserHealthTimestamp[]
+  alerts               UserAlertNotification[]
+
+  @@map("user_wheelchair")
+}
+
+model UserGuardian {
+  guardian_email    String   @id
+  guardian_password String
+  guardian_name     String?
+  user_email        String?
+
+  user UserWheelchair? @relation(fields: [user_email], references: [user_email])
+
+  @@map("user_guardian")
+}
+
+model UserHealthTimestamp {
+  user_email     String
+  user_timestamp DateTime
+
+  user   UserWheelchair @relation(fields: [user_email], references: [user_email])
+  health HealthItem?
+
+  @@id([user_email, user_timestamp])
+  @@map("user_health_timestamp")
+}
+
+model HealthItem {
+  user_email     String
+  user_timestamp DateTime
+  oxylevel       Int
+  heartrate      Int
+
+  healthTimestamp UserHealthTimestamp @relation(fields: [user_email, user_timestamp], references: [user_email, user_timestamp])
+
+  @@id([user_email, user_timestamp])
+  @@map("health_item")
+}
+
+model UserAlertNotification {
+  user_email      String
+  alert_timestamp DateTime
+
+  user UserWheelchair @relation(fields: [user_email], references: [user_email])
+
+  @@id([user_email, alert_timestamp])
+  @@map("user_alert_notification")
+}
