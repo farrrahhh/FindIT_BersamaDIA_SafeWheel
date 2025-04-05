@@ -14,7 +14,7 @@ import {
   Alert,
 } from "react-native"
 import axios from "axios"
-import type { StackNavigationProp } from "@react-navigation/stack"
+import type { StackNavigationProp } from '@react-navigation/stack';
 import type { RootStackParamList } from "../AppNavigator.tsx"
 
 type LoginScreenNavigationProp = StackNavigationProp<RootStackParamList, "Login">

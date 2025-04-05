@@ -14,10 +14,11 @@ import {
   StatusBar,
   Platform,
   Modal,
+  Alert
 } from "react-native"
-import DateTimePicker from "@react-native-community/datetimepicker"
 import type { StackNavigationProp } from "@react-navigation/stack"
-import type { RootStackParamList } from "../navigation/AppNavigator"
+import type { RootStackParamList } from "../AppNavigator.ts"
+import axios from "axios"
 
 type SignupScreenNavigationProp = StackNavigationProp<RootStackParamList, "Signup">
 
@@ -70,29 +71,19 @@ export default function SignupPage({ navigation }: Props) {
     { label: "AB-", value: "AB-" },
   ]
 
-  // Returns true if the given field's value is valid
   const isFieldValid = (field: keyof FormData, value: string) => {
     switch (field) {
-      case "email":
-        return value.includes("@")
-      case "password":
-        return value.length >= 8
-      case "username":
-        return value.length >= 3
-      case "sex":
-        return value.trim() !== ""
-      case "dob":
-        return value.trim() !== ""
-      case "bloodType":
-        return value.trim() !== ""
-      case "emergencyNumber":
-        return value.length >= 10
-      default:
-        return true
+      case "email": return value.includes("@")
+      case "password": return value.length >= 8
+      case "username": return value.length >= 3
+      case "sex": return value.trim() !== ""
+      case "dob": return value.trim() !== ""
+      case "bloodType": return value.trim() !== ""
+      case "emergencyNumber": return value.length >= 10
+      default: return true
     }
   }
 
-  // Updates a field and, if valid, removes its error from state
   const updateField = (field: keyof FormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
     if (errors.includes(field)) {
@@ -111,15 +102,31 @@ export default function SignupPage({ navigation }: Props) {
     if (!formData.dob) newErrors.push("dob")
     if (!formData.bloodType) newErrors.push("bloodType")
     if (formData.emergencyNumber.length < 10) newErrors.push("emergencyNumber")
-
     setErrors(newErrors)
     return newErrors.length === 0
   }
 
-  const handleSubmit = () => {
-    if (validateForm()) {
-      console.log("Form submitted:", formData)
-      navigation.goBack()
+  const handleSubmit = async () => {
+    if (!validateForm()) return
+    try {
+      const response = await axios.post("https://find-it-bersama-dia-safe-wheel.vercel.app/api/signup", {
+        user_email: formData.email,
+        user_password: formData.password,
+        user_name: formData.username,
+        sex: formData.sex,
+        dob: formData.dob,
+        bloodtype: formData.bloodType,
+        emergency_number: formData.emergencyNumber
+      })
+      if (response.data && response.data.user) {
+        Alert.alert("Success", "Account created successfully")
+        navigation.navigate("Login")
+      } else {
+        Alert.alert("Failed", response.data.message || "Something went wrong")
+      }
+    } catch (error: any) {
+      console.error("Signup error:", error)
+      Alert.alert("Error", error?.response?.data?.message || "Server error")
     }
   }
 
@@ -145,75 +152,37 @@ export default function SignupPage({ navigation }: Props) {
     setShowDatePicker(true)
   }
 
-  // Reusable input function; adds an eye button for password field
   const renderInputField = (
     label: string,
     field: keyof FormData,
     keyboardType?: KeyboardTypeOptions,
     secure?: boolean,
     placeholder?: string
-  ) => {
-    // Special case for password field
-    // Inside your renderInputField function:
-
-  // In your renderInputField function, update the password case as follows:
-
-    if (field === "password") {
-      return (
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>{label}</Text>
-          <View style={styles.passwordContainer}>
-            <TextInput
-              style={[
-                styles.input,
-                styles.passwordInput,
-                errors.includes(field) && styles.inputError
-              ]}
-              value={formData[field]}
-              onChangeText={(text) => updateField(field, text)}
-              keyboardType={keyboardType}
-              secureTextEntry={!showPassword}
-              autoCapitalize="none"
-              accessibilityLabel={label}
-              placeholder={placeholder || "Enter your password"}
-              placeholderTextColor="#a99fd6"
-            />
-            <TouchableOpacity
-              onPress={() => setShowPassword((prev) => !prev)}
-              style={styles.eyeButton}
-              accessibilityLabel="Toggle password visibility"
-            >
-              <Text style={styles.eyeIcon}>{showPassword ? "🙈" : "👁"}</Text>
-            </TouchableOpacity>
-          </View>
-          {errors.includes(field) && (
-            <Text style={styles.errorText}>
-              Please enter a valid {label.toLowerCase()}
-            </Text>
-          )}
-        </View>
-      )
-    }
-
-    // Default input for other fields
-    return (
-      <View style={styles.inputContainer}>
-        <Text style={styles.label}>{label}</Text>
+  ) => (
+    <View style={styles.inputContainer}>
+      <Text style={styles.label}>{label}</Text>
+      <View style={field === "password" ? styles.passwordContainer : undefined}>
         <TextInput
-          style={[styles.input, errors.includes(field) && styles.inputError]}
+          style={[styles.input, field === "password" && styles.passwordInput, errors.includes(field) && styles.inputError]}
           value={formData[field]}
           onChangeText={(text) => updateField(field, text)}
           keyboardType={keyboardType}
-          secureTextEntry={secure}
+          secureTextEntry={secure && !showPassword}
           autoCapitalize="none"
-          accessibilityLabel={label}
           placeholder={placeholder || `Enter your ${label.toLowerCase()}`}
           placeholderTextColor="#a99fd6"
         />
-        {errors.includes(field) && <Text style={styles.errorText}>Please enter a valid {label.toLowerCase()}</Text>}
+        {field === "password" && (
+          <TouchableOpacity onPress={() => setShowPassword((prev) => !prev)} style={styles.eyeButton}>
+            <Text style={styles.eyeIcon}>{showPassword ? "🙈" : "👁"}</Text>
+          </TouchableOpacity>
+        )}
       </View>
-    )
-  }
+      {errors.includes(field) && (
+        <Text style={styles.errorText}>Please enter a valid {label.toLowerCase()}</Text>
+      )}
+    </View>
+  )
 
   return (
     <View style={styles.container}>
@@ -277,53 +246,19 @@ export default function SignupPage({ navigation }: Props) {
 
             {/* Date of Birth Field */}
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>Date of Birth</Text>
-              <TouchableOpacity
-                onPress={toggleDatepicker}
-                style={[styles.input, errors.includes("dob") && styles.inputError, styles.dateDisplay]}
-                accessibilityLabel="Select date of birth"
-              >
-                <Text style={formData.dob ? styles.dateText : styles.datePlaceholder}>
-                  {formData.dob || "Select date..."}
-                </Text>
-              </TouchableOpacity>
-              {errors.includes("dob") && <Text style={styles.errorText}>Please select your date of birth</Text>}
+                <Text style={styles.label}>Date of Birth</Text>
+                <TextInput
+                    style={[styles.input, errors.includes("dob") && styles.inputError]}
+                    placeholder="YYYY-MM-DD"
+                    placeholderTextColor="#a99fd6"
+                    value={formData.dob}
+                    onChangeText={(text) => updateField("dob", text)}
+                    keyboardType="numbers-and-punctuation"
+                />
+                {errors.includes("dob") && (
+                    <Text style={styles.errorText}>Please enter your date of birth</Text>
+                )}
             </View>
-
-            {/* Render DateTimePicker for Android inline */}
-            {showDatePicker && Platform.OS === "android" && (
-              <DateTimePicker
-                testID="dateTimePicker"
-                value={date}
-                mode="date"
-                display="default"
-                onChange={onDateChange}
-                maximumDate={new Date()}
-                minimumDate={new Date(1900, 0, 1)}
-              />
-            )}
-
-            {/* iOS Modal for DateTimePicker */}
-            {showDatePicker && Platform.OS === "ios" && (
-              <Modal transparent={true} animationType="slide">
-                <View style={styles.modalContainer}>
-                  <View style={styles.modalContent}>
-                    <DateTimePicker
-                      testID="dateTimePicker"
-                      value={date}
-                      mode="date"
-                      display="default"
-                      onChange={onDateChange}
-                      maximumDate={new Date()}
-                      minimumDate={new Date(1900, 0, 1)}
-                    />
-                    <TouchableOpacity onPress={() => setShowDatePicker(false)} style={styles.doneButton}>
-                      <Text style={styles.doneButtonText}>Done</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </Modal>
-            )}
 
             {/* Custom Blood Type Dropdown */}
             <View style={[styles.inputContainer, styles.dropdownContainer]}>
