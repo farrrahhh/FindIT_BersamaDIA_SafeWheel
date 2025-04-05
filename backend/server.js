@@ -1,49 +1,88 @@
+// File: server.js
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import bcrypt from "bcrypt";
 
-// Import rute API
-import submitQuizRoute from "./api/quiz/submit-quiz.js";
-import quizzesRoute from "./api/quiz/quizzes.js";
-import verifyTokenRoute from "./api/verifyToken.js"; // Rute untuk verifikasi token
-import signupRoute from "./api/auth/signup.js"; // Rute untuk signup
-import loginRoute from "./api/auth/login.js"; // Rute untuk login
-import changePasswordRoute from "./api/auth/changepassword.js"; // Rute untuk mengganti password
-
-import db from "./config.js"; // Pastikan config.js mengatur koneksi db
-
-dotenv.config(); // Memuat konfigurasi .env sebelum menggunakan variabel lingkungan
+// Import models dari CommonJS
+import { sequelize, UserWheelchair, UserGuardian } from './models.js';
+// Load .env
+dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors());
-app.use(express.json()); // Untuk parse body JSON
+app.use(express.json());
 
-// Rute API
-app.use("/api/submit-quiz", submitQuizRoute);
-app.use("/api/quizzes", quizzesRoute);
-app.use("/api/verify-token", verifyTokenRoute); // Rute untuk verifikasi token
-app.use("/api/signup", signupRoute); // Rute untuk signup
-app.use("/api/login", loginRoute); // Rute untuk login
-app.use("/api/change-password", changePasswordRoute); // Rute untuk mengganti password
-app.use("/api/verify-token", verifyTokenRoute); // Rute untuk verifikasi token
-
-
-// Endpoint untuk root atau home (opsional)
+// Root endpoint
 app.get("/", (req, res) => {
-  res.send('This is SafeWheel API');
+  res.send("This is SafeWheel API");
 });
 
-// Fungsi untuk memulai server dan koneksi database
+// ====== SIGNUP ======
+app.post("/api/signup", async (req, res) => {
+  const { user_email, user_password, user_name, guardian_email } = req.body;
+
+  if (!user_email || !user_password || !user_name) {
+    return res.status(400).json({ message: "Missing required fields" });
+  }
+
+  try {
+    const existingUser = await UserWheelchair.findByPk(user_email);
+    if (existingUser) {
+      return res.status(409).json({ message: "User already exists" });
+    }
+
+    const hashedPassword = await bcrypt.hash(user_password, 10);
+
+    const user = await UserWheelchair.create({
+      user_email,
+      user_password: hashedPassword,
+      user_name,
+      guardian_email
+    });
+
+    res.status(201).json({ message: "User registered successfully", user });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// ====== LOGIN ======
+app.post("/api/login", async (req, res) => {
+  const { user_email, user_password } = req.body;
+
+  if (!user_email || !user_password) {
+    return res.status(400).json({ message: "Email and password required" });
+  }
+
+  try {
+    const user = await UserWheelchair.findByPk(user_email);
+    if (!user) {
+      return res.status(401).json({ message: "Invalid email or password" });
+    }
+
+    const match = await bcrypt.compare(user_password, user.user_password);
+    if (!match) {
+      return res.status(401).json({ message: "Invalid email or password" });
+    }
+
+    res.json({ message: "Login successful", user });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Start server
 const startServer = async () => {
   try {
-    // Cek koneksi ke database
-    await db.authenticate();
+    await sequelize.authenticate();
     console.log("Database Connected...");
 
-    // Menjalankan server setelah koneksi ke DB berhasil
     app.listen(PORT, () => {
       console.log(`Server is running on port ${PORT}`);
     });
@@ -52,5 +91,4 @@ const startServer = async () => {
   }
 };
 
-// Mulai server dan database
 startServer();
