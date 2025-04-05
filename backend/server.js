@@ -21,34 +21,59 @@ app.get("/", (req, res) => {
   res.send("This is SafeWheel API");
 });
 
-// ====== SIGNUP ======
+// ====== SIGNUP USER WHEELCHAIR ======
 app.post("/api/signup", async (req, res) => {
-  const { user_email, user_password, user_name, guardian_email } = req.body;
+  const {
+    user_email,
+    user_password,
+    user_name,
+    sex,
+    dob,
+    bloodtype,
+    emergency_number,
+    location_coordinates
+  } = req.body;
 
   if (!user_email || !user_password || !user_name) {
     return res.status(400).json({ message: "Missing required fields" });
   }
 
   try {
-    const existingUser = await prisma.userWheelchair.findUnique({ where: { user_email } });
+    // Cek apakah user sudah terdaftar
+    const existingUser = await prisma.userWheelchair.findUnique({
+      where: { user_email }
+    });
+
     if (existingUser) {
       return res.status(409).json({ message: "User already exists" });
     }
 
+    // Hash password
     const hashedPassword = await bcrypt.hash(user_password, 10);
 
+    // Buat user kursi roda
     const user = await prisma.userWheelchair.create({
       data: {
         user_email,
         user_password: hashedPassword,
         user_name,
-        guardian_email
+        sex,
+        dob: dob ? new Date(dob) : null,
+        bloodtype,
+        emergency_number,
+        location_coordinates
       }
     });
 
-    res.status(201).json({ message: "User registered successfully", user });
+    // Hapus password dari response
+    const { user_password: _, ...safeUser } = user;
+
+    res.status(201).json({
+      message: "User registered successfully",
+      user: safeUser
+    });
   } catch (err) {
-    console.error(err);
+    console.error("Signup error:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
