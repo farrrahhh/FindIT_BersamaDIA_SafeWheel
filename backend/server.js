@@ -4,7 +4,6 @@ import cors from "cors";
 import dotenv from "dotenv";
 import bcrypt from 'bcryptjs';
 import { PrismaClient } from '@prisma/client';
-import serverless from 'serverless-http'
 
 // Load .env
 dotenv.config();
@@ -220,4 +219,3 @@ app.post("/api/login", async (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server is running`);
 });
-export const handler = serverless(app)
