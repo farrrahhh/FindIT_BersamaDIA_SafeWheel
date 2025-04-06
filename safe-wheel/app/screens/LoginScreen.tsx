@@ -17,7 +17,7 @@ import type { RootStackParamList } from "../navigation/AppNavigator.tsx"
 import { Feather } from "@expo/vector-icons"
 import axios from "axios"
 type LoginScreenNavigationProp = StackNavigationProp<RootStackParamList, "Login">
-
+import AsyncStorage from '@react-native-async-storage/async-storage';
 interface LoginFormData {
   email: string
   password: string
@@ -80,7 +80,9 @@ export default function LoginScreen({ navigation }: Props) {
   
       if (response.status === 200) {
         console.log("Login Success:", response.data)
-        navigation.navigate("Landing")
+        await AsyncStorage.setItem('user_email', formData.email);
+        navigation.navigate("Homepage")
+
       } else {
         console.warn("Login failed:", response.data.message || "Invalid credentials")
         alert(response.data.message || "Login failed")

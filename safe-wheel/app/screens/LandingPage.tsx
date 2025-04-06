@@ -65,6 +65,7 @@ export default function LandingPage() {
               <Text style={styles.buttonText}>Sign Up</Text>
             </TouchableOpacity>
           </View>
+          
 
           {/* Bottom Indicator */}
         </SafeAreaView>

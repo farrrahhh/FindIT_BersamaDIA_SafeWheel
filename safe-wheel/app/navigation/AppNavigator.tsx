@@ -7,12 +7,18 @@ import RegisterChoices from '@/screens/RegisterChoices.tsx';
 import UserLocationScreen from '@/screens/UserLocationScreen.tsx';
 import Alert from '@/screens/Alert.tsx';
 import SignupGuardian from '@/screens/SignUpGuardian.tsx';
-// Create stack navigator first
+import Homepage from '@/screens/Homepage.tsx';
+import Emergency from '@/screens/Emergency.tsx';
 export type RootStackParamList = {
   Landing: undefined;
   Signup: undefined; 
   Login: undefined;
   SignupGuardian: undefined;
+  RegisterChoices: undefined;
+  UserLocation: undefined;
+  Alert: undefined;
+  Homepage: undefined;
+  Emergency: undefined;
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -54,6 +60,14 @@ export default function AppNavigator() {
       <Stack.Screen
         name="UserLocation"
         component={UserLocationScreen}
+      />
+      <Stack.Screen
+        name="Homepage"
+        component={Homepage}
+      />
+      <Stack.Screen
+        name="Emergency"
+        component={Emergency}
       />
       
 

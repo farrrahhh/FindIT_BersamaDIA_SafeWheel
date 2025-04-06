@@ -1,8 +1,16 @@
 import React, { useState } from "react"
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native"
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Dimensions,
+  SafeAreaView,
+  ScrollView,
+} from "react-native"
 import { LineChart } from "react-native-chart-kit"
-import { Dimensions } from "react-native"
 import { Ionicons, Feather } from "@expo/vector-icons"
+import Navbar from "../components/Navbar.tsx"
 
 const screenWidth = Dimensions.get("window").width
 
@@ -28,80 +36,98 @@ export default function Homepage() {
   }
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
-          <Ionicons name="person-circle-outline" size={32} color="#4B3EA8" />
-          <Text style={styles.greeting}>Hi, Mattheuw</Text>
+    <SafeAreaView style={styles.wrapper}>
+      <ScrollView contentContainerStyle={styles.scroll}>
+        <View style={styles.container}>
+          {/* Header */}
+          <View style={styles.header}>
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <Ionicons name="person-circle-outline" size={32} color="#4B3EA8" />
+              <Text style={styles.greeting}>Hi, Mattheuw</Text>
+            </View>
+            <Feather name="bell" size={24} color="#4B3EA8" />
+          </View>
+
+          {/* Top Cards */}
+          <View style={styles.topCards}>
+            <View style={styles.cardGradient}>
+              <Text style={styles.cardTitle}>Heart</Text>
+              <Ionicons name="heart" size={48} color="#4B3EA8" style={{ marginVertical: 8 }} />
+              <Text style={styles.cardValue}>105 mbp</Text>
+            </View>
+            <View style={styles.cardBordered}>
+              <Text style={styles.cardTitle}>Oxygen</Text>
+              <Ionicons name="water" size={48} color="#4B3EA8" style={{ marginVertical: 8 }} />
+              <Text style={styles.cardValue}>99% OS</Text>
+            </View>
+          </View>
+
+          {/* Chart Section */}
+          <View style={styles.chartContainer}>
+            <View style={styles.toggleRow}>
+              <TouchableOpacity
+                style={[styles.toggleButton, activeData === "heartRate" && styles.toggleActive]}
+                onPress={() => setActiveData("heartRate")}
+              >
+                <Text style={[styles.toggleText, activeData === "heartRate" && styles.toggleTextActive]}>
+                  Heart Rate
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.toggleButton, activeData === "oxygen" && styles.toggleActive]}
+                onPress={() => setActiveData("oxygen")}
+              >
+                <Text style={[styles.toggleText, activeData === "oxygen" && styles.toggleTextActive]}>
+                  Oxygen
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <LineChart
+              data={chartData}
+              width={screenWidth - 60}
+              height={220}
+              withShadow={false}
+              chartConfig={{
+                backgroundColor: "#fff",
+                backgroundGradientFrom: "#fff",
+                backgroundGradientTo: "#fff",
+                decimalPlaces: 0,
+                color: () => "#CC4FAB",
+                labelColor: () => "#888",
+                propsForDots: {
+                  r: "4",
+                  strokeWidth: "2",
+                  stroke: "#fff",
+                },
+              }}
+              bezier
+              style={{ marginTop: 12, borderRadius: 12 }}
+            />
+          </View>
         </View>
-        <Feather name="bell" size={24} color="#4B3EA8" />
+      </ScrollView>
+
+      {/* Fixed Navbar at Bottom */}
+      <View style={styles.navbarContainer}>
+        <Navbar />
       </View>
-
-      {/* Top Cards */}
-      <View style={styles.topCards}>
-        <View style={styles.cardGradient}>
-          <Text style={styles.cardTitle}>Heart</Text>
-          <Ionicons name="heart" size={48} color="#4B3EA8" style={{ marginVertical: 8 }} />
-          <Text style={styles.cardValue}>105 mbp</Text>
-        </View>
-        <View style={styles.cardBordered}>
-          <Text style={styles.cardTitle}>Oxygen</Text>
-          <Ionicons name="water" size={48} color="#4B3EA8" style={{ marginVertical: 8 }} />
-          <Text style={styles.cardValue}>99% OS</Text>
-        </View>
-      </View>
-
-
-    {/* Chart Section */}
-    <View style={styles.chartContainer}>
-    <View style={styles.toggleRow}>
-        <TouchableOpacity
-        style={[styles.toggleButton, activeData === "heartRate" && styles.toggleActive]}
-        onPress={() => setActiveData("heartRate")}
-        >
-        <Text style={[styles.toggleText, activeData === "heartRate" && styles.toggleTextActive]}>Heart Rate</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-        style={[styles.toggleButton, activeData === "oxygen" && styles.toggleActive]}
-        onPress={() => setActiveData("oxygen")}
-        >
-        <Text style={[styles.toggleText, activeData === "oxygen" && styles.toggleTextActive]}>Oxygen</Text>
-        </TouchableOpacity>
-    </View>
-
-    <LineChart
-        data={chartData}
-        width={screenWidth - 60} // <-- dikurangi agar sesuai padding container
-        height={220}
-        withShadow={false}
-        chartConfig={{
-        backgroundColor: "#fff",
-        backgroundGradientFrom: "#fff",
-        backgroundGradientTo: "#fff",
-        decimalPlaces: 0,
-        color: () => "#CC4FAB",
-        labelColor: () => "#888",
-        propsForDots: {
-            r: "4",
-            strokeWidth: "2",
-            stroke: "#fff",
-        },
-        }}
-        bezier
-        style={{ marginTop: 12, borderRadius: 12 }}
-    />
-    </View>
-    </View>
+    </SafeAreaView>
   )
 }
 
 const styles = StyleSheet.create({
-  container: {
+  wrapper: {
     flex: 1,
+    backgroundColor: "#fff",
+    position: "relative",
+  },
+  scroll: {
+    paddingBottom: 100, // to make space for navbar
+  },
+  container: {
     paddingTop: 60,
     paddingHorizontal: 20,
-    backgroundColor: "#fff",
   },
   header: {
     flexDirection: "row",
@@ -175,5 +201,11 @@ const styles = StyleSheet.create({
   },
   toggleTextActive: {
     fontWeight: "bold",
+  },
+  navbarContainer: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
   },
 })
