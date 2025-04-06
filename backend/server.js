@@ -20,10 +20,10 @@ app.use(express.json());
 app.get("/", (req, res) => {
   res.send("This is SafeWheel API");
 });
-
 // ====== SIGNUP USER WHEELCHAIR ======
 app.post("/api/signup", async (req, res) => {
   const {
+    safewheel_id, // user memberikan ini
     user_email,
     user_password,
     user_name,
@@ -34,26 +34,35 @@ app.post("/api/signup", async (req, res) => {
     location_coordinates
   } = req.body;
 
-  if (!user_email || !user_password || !user_name) {
+  if (!safewheel_id || !user_email || !user_password || !user_name) {
     return res.status(400).json({ message: "Missing required fields" });
   }
 
   try {
-    // Cek apakah user sudah terdaftar
-    const existingUser = await prisma.userWheelchair.findUnique({
-      where: { user_email }
+    // Cek apakah ID atau email sudah digunakan
+    const existingId = await prisma.userWheelchair.findUnique({
+      where: { safewheel_id },
     });
 
-    if (existingUser) {
-      return res.status(409).json({ message: "User already exists" });
+    const existingEmail = await prisma.userWheelchair.findUnique({
+      where: { user_email },
+    });
+
+    if (existingId) {
+      return res.status(409).json({ message: "safewheel_id already exists" });
+    }
+
+    if (existingEmail) {
+      return res.status(409).json({ message: "Email already in use" });
     }
 
     // Hash password
     const hashedPassword = await bcrypt.hash(user_password, 10);
 
-    // Buat user kursi roda
+    // Simpan user baru
     const user = await prisma.userWheelchair.create({
       data: {
+        safewheel_id,
         user_email,
         user_password: hashedPassword,
         user_name,
@@ -61,16 +70,58 @@ app.post("/api/signup", async (req, res) => {
         dob: dob ? new Date(dob) : null,
         bloodtype,
         emergency_number,
-        location_coordinates
-      }
+        location_coordinates,
+      },
     });
 
-    // Hapus password dari response
     const { user_password: _, ...safeUser } = user;
 
     res.status(201).json({
       message: "User registered successfully",
-      user: safeUser
+      user: safeUser,
+    });
+  } catch (err) {
+    console.error("Signup error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// ====== SIGNUP USER GUARDIAN ======
+app.post("/api/signup/guardian", async (req, res) => {
+  const { guardian_email, guardian_password, guardian_name, safewheel_id } = req.body;
+
+  if (!guardian_email || !guardian_password || !guardian_name || !safewheel_id) {
+    return res.status(400).json({ message: "Missing required fields" });
+  }
+
+  try {
+    // Cek apakah email sudah digunakan
+    const existingEmail = await prisma.userGuardian.findUnique({
+      where: { guardian_email },
+    });
+
+    if (existingEmail) {
+      return res.status(409).json({ message: "Email already in use" });
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(guardian_password, 10);
+
+    // Simpan user baru
+    const guardian = await prisma.userGuardian.create({
+      data: {
+        guardian_email,
+        guardian_password: hashedPassword,
+        guardian_name,
+        safewheel_id,
+      },
+    });
+
+    const { guardian_password: _, ...safeGuardian } = guardian;
+
+    res.status(201).json({
+      message: "Guardian registered successfully",
+      user: safeGuardian,
     });
   } catch (err) {
     console.error("Signup error:", err);
@@ -83,55 +134,70 @@ app.post("/api/login", async (req, res) => {
   const { user_email, user_password } = req.body;
 
   if (!user_email || !user_password) {
-    return res.status(400).json({ message: "Email and password required" });
+    return res.status(400).json({ message: "Missing required fields" });
   }
 
   try {
-    const user = await prisma.userWheelchair.findUnique({ where: { user_email } });
+    // Cek apakah email ada
+    const user = await prisma.userWheelchair.findUnique({
+      where: { user_email },
+    });
+
     if (!user) {
       return res.status(401).json({ message: "Invalid email or password" });
     }
 
-    const match = await bcrypt.compare(user_password, user.user_password);
-    if (!match) {
+    // Cek password
+    const isPasswordValid = await bcrypt.compare(user_password, user.user_password);
+
+    if (!isPasswordValid) {
       return res.status(401).json({ message: "Invalid email or password" });
     }
 
-    res.json({ message: "Login successful", user });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error" });
-  }
-});
+    const { user_password: _, ...safeUser } = user;
 
-// ====== GET ALL USERS ======
-app.get("/api/users", async (req, res) => {
-  try {
-    const users = await prisma.userWheelchair.findMany({
-      select: {
-        user_email: true,
-        user_name: true,
-        sex: true,
-        dob: true,
-        bloodtype: true,
-        emergency_number: true,
-        location_coordinates: true,
-        guardian: {
-          select: {
-            guardian_email: true,
-            guardian_name: true
-          }
-        }
-      }
+    res.status(200).json({
+      message: "Login successful",
+      user: safeUser,
     });
-    res.json(users);
   } catch (err) {
-    console.error(err);
+    console.error("Login error:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
+// ====== LOGIN GUARDIAN ======
+app.post("/api/login/guardian", async (req, res) => {
+  const { guardian_email, guardian_password } = req.body;
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+  if (!guardian_email || !guardian_password) {
+    return res.status(400).json({ message: "Missing required fields" });
+  }
+
+  try {
+    // Cek apakah email ada
+    const guardian = await prisma.userGuardian.findUnique({
+      where: { guardian_email },
+    });
+
+    if (!guardian) {
+      return res.status(401).json({ message: "Invalid email or password" });
+    }
+
+    // Cek password
+    const isPasswordValid = await bcrypt.compare(guardian_password, guardian.guardian_password);
+
+    if (!isPasswordValid) {
+      return res.status(401).json({ message: "Invalid email or password" });
+    }
+
+    const { guardian_password: _, ...safeGuardian } = guardian;
+
+    res.status(200).json({
+      message: "Login successful",
+      user: safeGuardian,
+    });
+  } catch (err) {
+    console.error("Login error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
 });

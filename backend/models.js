@@ -3,27 +3,18 @@ import { Sequelize, DataTypes } from 'sequelize';
 const sequelize = new Sequelize('safewheel', 'root', 'qoQZIFmQiERLEGuMjYMIjPcZpiaJMhUy', {
   host: 'caboose.proxy.rlwy.net',
   port: 51051,
-  dialect: 'mysql'
-});
-
-// Guardian
-const UserGuardian = sequelize.define('UserGuardian', {
-  guardian_email: {
-    type: DataTypes.STRING,
-    primaryKey: true
-  },
-  guardian_password: DataTypes.STRING,
-  guardian_name: DataTypes.STRING
-}, {
-  tableName: 'user_guardian',
-  timestamps: false
+  dialect: 'mysql',
 });
 
 // Wheelchair User
 const UserWheelchair = sequelize.define('UserWheelchair', {
+  safewheel_id: {
+    type: DataTypes.STRING,
+    primaryKey: true,
+  },
   user_email: {
     type: DataTypes.STRING,
-    primaryKey: true
+    unique: true,
   },
   user_password: DataTypes.STRING,
   user_name: DataTypes.STRING,
@@ -31,89 +22,87 @@ const UserWheelchair = sequelize.define('UserWheelchair', {
   dob: DataTypes.DATE,
   bloodtype: DataTypes.STRING,
   emergency_number: DataTypes.STRING,
-  guardian_email: {
-    type: DataTypes.STRING,
-    references: {
-      model: 'user_guardian',
-      key: 'guardian_email'
-    }
-  },
-  location_coordinates: DataTypes.STRING
+  location_coordinates: DataTypes.STRING,
 }, {
   tableName: 'user_wheelchair',
-  timestamps: false
+  timestamps: false,
 });
 
-// Health Timestamp
-const UserHealthTimestamp = sequelize.define('UserHealthTimestamp', {
-  user_email: {
+// Guardian
+const UserGuardian = sequelize.define('UserGuardian', {
+  guardian_email: {
     type: DataTypes.STRING,
     primaryKey: true,
-    references: {
-      model: 'user_wheelchair',
-      key: 'user_email'
-    }
   },
-  user_timestamp: {
-    type: DataTypes.DATE,
-    primaryKey: true
-  }
+  guardian_password: DataTypes.STRING,
+  guardian_name: DataTypes.STRING,
+  safewheel_id: {
+    type: DataTypes.STRING,
+    references: {
+      model: UserWheelchair,
+      key: 'safewheel_id',
+    },
+  },
 }, {
-  tableName: 'user_health_timestamp',
-  timestamps: false
+  tableName: 'user_guardian',
+  timestamps: false,
 });
 
 // Health Item
 const HealthItem = sequelize.define('HealthItem', {
+  safewheel_id: {
+    type: DataTypes.STRING,
+    primaryKey: true,
+    references: {
+      model: UserWheelchair,
+      key: 'safewheel_id',
+    },
+  },
   user_timestamp: {
     type: DataTypes.DATE,
-    primaryKey: true
+    primaryKey: true,
   },
   oxylevel: DataTypes.INTEGER,
-  heartrate: DataTypes.INTEGER
+  heartrate: DataTypes.INTEGER,
 }, {
   tableName: 'health_item',
-  timestamps: false
+  timestamps: false,
 });
 
 // Alert Notification
 const UserAlertNotification = sequelize.define('UserAlertNotification', {
-  user_email: {
+  safewheel_id: {
     type: DataTypes.STRING,
     primaryKey: true,
     references: {
-      model: 'user_wheelchair',
-      key: 'user_email'
-    }
+      model: UserWheelchair,
+      key: 'safewheel_id',
+    },
   },
   alert_timestamp: {
     type: DataTypes.DATE,
-    primaryKey: true
-  }
+    primaryKey: true,
+  },
 }, {
   tableName: 'user_alert_notification',
-  timestamps: false
+  timestamps: false,
 });
 
 // Relations
-UserGuardian.hasMany(UserWheelchair, { foreignKey: 'guardian_email' });
-UserWheelchair.belongsTo(UserGuardian, { foreignKey: 'guardian_email' });
+UserWheelchair.hasMany(UserGuardian, { foreignKey: 'safewheel_id' });
+UserGuardian.belongsTo(UserWheelchair, { foreignKey: 'safewheel_id' });
 
-UserWheelchair.hasMany(UserHealthTimestamp, { foreignKey: 'user_email' });
-UserHealthTimestamp.belongsTo(UserWheelchair, { foreignKey: 'user_email' });
+UserWheelchair.hasMany(HealthItem, { foreignKey: 'safewheel_id' });
+HealthItem.belongsTo(UserWheelchair, { foreignKey: 'safewheel_id' });
 
-UserHealthTimestamp.hasOne(HealthItem, { foreignKey: 'user_timestamp' });
-HealthItem.belongsTo(UserHealthTimestamp, { foreignKey: 'user_timestamp' });
+UserWheelchair.hasMany(UserAlertNotification, { foreignKey: 'safewheel_id' });
+UserAlertNotification.belongsTo(UserWheelchair, { foreignKey: 'safewheel_id' });
 
-UserWheelchair.hasMany(UserAlertNotification, { foreignKey: 'user_email' });
-UserAlertNotification.belongsTo(UserWheelchair, { foreignKey: 'user_email' });
-
-// Export in ESM style
+// Export
 export {
   sequelize,
   UserGuardian,
   UserWheelchair,
-  UserHealthTimestamp,
   HealthItem,
-  UserAlertNotification
+  UserAlertNotification,
 };
