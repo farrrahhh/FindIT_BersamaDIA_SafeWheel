@@ -11,6 +11,10 @@ import {
 import { LineChart } from "react-native-chart-kit"
 import { Ionicons, Feather } from "@expo/vector-icons"
 import Navbar from "../components/Navbar.tsx"
+import { useNavigation } from "@react-navigation/native"
+import { StackNavigationProp } from "@react-navigation/stack"
+import { RootStackParamList } from "../navigation/AppNavigator.ts"
+
 
 const screenWidth = Dimensions.get("window").width
 
@@ -21,6 +25,7 @@ const dummyData = {
 }
 
 export default function Homepage() {
+  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>()
   const [activeData, setActiveData] = useState<"heartRate" | "oxygen">("heartRate")
 
   const chartData = {
@@ -34,6 +39,10 @@ export default function Homepage() {
     ],
     legend: [],
   }
+  const handleNavigate = () => {
+    console.log("Navigate to Profile")
+    navigation.navigate("Profile")
+  }
 
   return (
     <SafeAreaView style={styles.wrapper}>
@@ -41,10 +50,13 @@ export default function Homepage() {
         <View style={styles.container}>
           {/* Header */}
           <View style={styles.header}>
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <TouchableOpacity
+              style={{ flexDirection: "row", alignItems: "center" }}
+              onPress={handleNavigate}
+            >
               <Ionicons name="person-circle-outline" size={32} color="#4B3EA8" />
               <Text style={styles.greeting}>Hi, Mattheuw</Text>
-            </View>
+            </TouchableOpacity>
             <Feather name="bell" size={24} color="#4B3EA8" />
           </View>
 

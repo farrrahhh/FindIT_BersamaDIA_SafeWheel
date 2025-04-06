@@ -9,6 +9,7 @@ import Alert from '@/screens/Alert.tsx';
 import SignupGuardian from '@/screens/SignUpGuardian.tsx';
 import Homepage from '@/screens/Homepage.tsx';
 import Emergency from '@/screens/Emergency.tsx';
+import Profile from '@/screens/Profile.tsx';
 export type RootStackParamList = {
   Landing: undefined;
   Signup: undefined; 
@@ -19,6 +20,7 @@ export type RootStackParamList = {
   Alert: undefined;
   Homepage: undefined;
   Emergency: undefined;
+  Profile: undefined;
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -68,6 +70,10 @@ export default function AppNavigator() {
       <Stack.Screen
         name="Emergency"
         component={Emergency}
+      />
+      <Stack.Screen
+        name="Profile"
+        component={Profile}
       />
       
 
