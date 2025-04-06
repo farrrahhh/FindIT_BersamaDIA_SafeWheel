@@ -6,11 +6,13 @@ import LoginScreen from '@/screens/LoginScreen.tsx';
 import RegisterChoices from '@/screens/RegisterChoices.tsx';
 import UserLocationScreen from '@/screens/UserLocationScreen.tsx';
 import Alert from '@/screens/Alert.tsx';
+import SignupGuardian from '@/screens/SignUpGuardian.tsx';
 // Create stack navigator first
 export type RootStackParamList = {
   Landing: undefined;
-  Signup: undefined; // Must match the name used in navigation.navigate()
-  Login: undefined; // Add Login screen if needed
+  Signup: undefined; 
+  Login: undefined;
+  SignupGuardian: undefined;
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -36,7 +38,11 @@ export default function AppNavigator() {
         name='Signup'
         component={SignupScreen}
       />
-
+      <Stack.Screen
+        name='SignupGuardian'
+        component={SignupGuardian}
+      />
+      
       <Stack.Screen
         name="Login"
         component={LoginScreen}
@@ -49,6 +55,7 @@ export default function AppNavigator() {
         name="UserLocation"
         component={UserLocationScreen}
       />
+      
 
     </Stack.Navigator>
   );

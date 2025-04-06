@@ -13,7 +13,8 @@ import {
   StatusBar,
 } from "react-native"
 import type { StackNavigationProp } from "@react-navigation/stack"
-import type { RootStackParamList } from "../navigation/AppNavigator"
+import type { RootStackParamList } from "../navigation/AppNavigator.tsx"
+import { Feather } from "@expo/vector-icons"
 
 type LoginScreenNavigationProp = StackNavigationProp<RootStackParamList, "Login">
 
@@ -136,7 +137,11 @@ export default function LoginScreen({ navigation }: Props) {
                   style={styles.eyeButton}
                   accessibilityLabel="Toggle password visibility"
                 >
-                  <Text style={styles.eyeIcon}>{showPassword ? "🙈" : "👁"}</Text>
+                  <Feather
+                  name={showPassword ? "eye-off" : "eye"}
+                  size={20}
+                  color="#493d9e"
+                />
                 </TouchableOpacity>
               </View>
               {errors.includes("password") && (

@@ -18,6 +18,7 @@ import {
 import DateTimePicker from "@react-native-community/datetimepicker"
 import type { StackNavigationProp } from "@react-navigation/stack"
 import type { RootStackParamList } from "../navigation/AppNavigator.tsx"
+import { Feather } from "@expo/vector-icons"
 
 type SignupScreenNavigationProp = StackNavigationProp<RootStackParamList, "Signup">
 
@@ -38,6 +39,7 @@ interface Props {
 
 export default function SignupScreen({ navigation }: Props) {
   const [formData, setFormData] = useState<FormData>({
+    safewheel_id: "",
     email: "",
     password: "",
     username: "",
@@ -214,7 +216,11 @@ export default function SignupScreen({ navigation }: Props) {
               style={styles.eyeButton}
               accessibilityLabel="Toggle password visibility"
             >
-              <Text style={styles.eyeIcon}>{showPassword ? "🙈" : "👁"}</Text>
+              <Feather
+                name={showPassword ? "eye-off" : "eye"}
+                size={20}
+                color="#493d9e"
+              />
             </TouchableOpacity>
           </View>
           {errors.includes(field) && (

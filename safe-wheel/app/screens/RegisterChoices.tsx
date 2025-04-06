@@ -36,7 +36,7 @@ export default function RegisterChoices() {
 
             <TouchableOpacity
               style={styles.optionCard}
-              onPress={() => navigation.navigate("Signup")}
+              onPress={() => navigation.navigate("SignupGuardian")}
               accessibilityLabel="Pilih Keluarga / Perawat"
             >
               <View style={styles.optionImageWrapper}>
