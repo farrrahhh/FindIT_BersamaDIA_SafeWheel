@@ -214,3 +214,8 @@ app.post("/api/login", async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
+
+// Start the server
+app.listen(PORT, () => {
+  console.log(`Server is running`);
+});
