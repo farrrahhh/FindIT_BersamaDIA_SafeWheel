@@ -166,36 +166,49 @@ app.post("/api/login", async (req, res) => {
   }
 });
 // ====== LOGIN GUARDIAN ======
-app.post("/api/login/guardian", async (req, res) => {
-  const { guardian_email, guardian_password } = req.body;
+app.post("/api/login", async (req, res) => {
+  const { email, password } = req.body;
 
-  if (!guardian_email || !guardian_password) {
-    return res.status(400).json({ message: "Missing required fields" });
-  }
+  if (!email || !password)
+    return res.status(400).json({ message: "Email and password are required." });
 
   try {
-    // Cek apakah email ada
-    const guardian = await prisma.userGuardian.findUnique({
-      where: { guardian_email },
+    // Coba cari di user_wheelchair
+    const wheelchairUser = await prisma.userWheelchair.findUnique({
+      where: { user_email: email },
     });
 
-    if (!guardian) {
-      return res.status(401).json({ message: "Invalid email or password" });
+    if (wheelchairUser) {
+      const valid = await bcrypt.compare(password, wheelchairUser.user_password);
+      if (!valid) return res.status(401).json({ message: "Invalid password" });
+
+      const { user_password, ...safeUser } = wheelchairUser;
+      return res.status(200).json({
+        message: "Login successful",
+        role: "wheelchair",
+        user: safeUser,
+      });
     }
 
-    // Cek password
-    const isPasswordValid = await bcrypt.compare(guardian_password, guardian.guardian_password);
-
-    if (!isPasswordValid) {
-      return res.status(401).json({ message: "Invalid email or password" });
-    }
-
-    const { guardian_password: _, ...safeGuardian } = guardian;
-
-    res.status(200).json({
-      message: "Login successful",
-      user: safeGuardian,
+    // Coba cari di user_guardian
+    const guardianUser = await prisma.userGuardian.findUnique({
+      where: { guardian_email: email },
     });
+
+    if (guardianUser) {
+      const valid = await bcrypt.compare(password, guardianUser.guardian_password);
+      if (!valid) return res.status(401).json({ message: "Invalid password" });
+
+      const { guardian_password, ...safeUser } = guardianUser;
+      return res.status(200).json({
+        message: "Login successful",
+        role: "guardian",
+        user: safeUser,
+      });
+    }
+
+    // Tidak ditemukan di dua-duanya
+    return res.status(404).json({ message: "User not found" });
   } catch (err) {
     console.error("Login error:", err);
     res.status(500).json({ message: "Server error" });
