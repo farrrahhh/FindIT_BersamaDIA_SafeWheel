@@ -15,7 +15,7 @@ import {
 import type { StackNavigationProp } from "@react-navigation/stack"
 import type { RootStackParamList } from "../navigation/AppNavigator.tsx"
 import { Feather } from "@expo/vector-icons"
-
+import axios from "axios"
 type LoginScreenNavigationProp = StackNavigationProp<RootStackParamList, "Login">
 
 interface LoginFormData {
@@ -66,10 +66,28 @@ export default function LoginScreen({ navigation }: Props) {
     return newErrors.length === 0
   }
 
-  const handleSubmit = () => {
-    if (validateForm()) {
-      console.log("Login submitted:", formData)
-      navigation.navigate("Landing")
+  const handleSubmit = async () => {
+    if (!validateForm()) return;
+  
+    try {
+      const response = await axios.post(
+        "https://find-it-bersama-dia-safe-wheel.vercel.app/api/login",
+        {
+          user_email: formData.email,
+          user_password: formData.password,
+        }
+      )
+  
+      if (response.status === 200) {
+        console.log("Login Success:", response.data)
+        navigation.navigate("Landing")
+      } else {
+        console.warn("Login failed:", response.data.message || "Invalid credentials")
+        alert(response.data.message || "Login failed")
+      }
+    } catch (error: any) {
+      console.error("Error:", error)
+      alert(error?.response?.data?.message || "Login error occurred")
     }
   }
 
