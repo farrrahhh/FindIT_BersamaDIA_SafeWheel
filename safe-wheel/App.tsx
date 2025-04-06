@@ -9,9 +9,7 @@ import Alert from './app/screens/Alert';
 export default function App() { // Must be default export
   return (
     <NavigationContainer>
-      {/* <AppNavigator /> */}
-      <Alert />
+      <AppNavigator />
     </NavigationContainer>
-    
   );
 }

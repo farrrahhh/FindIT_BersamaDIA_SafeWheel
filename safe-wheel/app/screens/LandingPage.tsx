@@ -40,7 +40,7 @@ export default function LandingPage() {
           {/* Greeting Section */}
           <View style={styles.greetingContainer}>
             <Text style={styles.greetingText}>
-              Hi, I'm Alexa <Text style={styles.emojiText}>😺</Text>
+            Care That Moves With You <Text style={styles.emojiText}></Text>
             </Text>
           </View>
 
@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   greetingText: {
-    fontSize: 32,
+    fontSize: 24,
     color: "#8174a0",
     fontWeight: "500",
     fontFamily: "sans-serif-medium",

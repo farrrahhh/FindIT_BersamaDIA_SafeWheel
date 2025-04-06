@@ -17,11 +17,12 @@ import {
 } from "react-native"
 import DateTimePicker from "@react-native-community/datetimepicker"
 import type { StackNavigationProp } from "@react-navigation/stack"
-import type { RootStackParamList } from "../navigation/AppNavigator"
+import type { RootStackParamList } from "../navigation/AppNavigator.tsx"
 
 type SignupScreenNavigationProp = StackNavigationProp<RootStackParamList, "Signup">
 
 interface FormData {
+  safewheel_id: string;
   email: string
   password: string
   username: string
@@ -104,6 +105,7 @@ export default function SignupScreen({ navigation }: Props) {
 
   const validateForm = () => {
     const newErrors: string[] = []
+    if (!formData.safewheel_id) newErrors.push("safewheel_id")
     if (!formData.email.includes("@")) newErrors.push("email")
     if (formData.password.length < 8) newErrors.push("password")
     if (formData.username.length < 3) newErrors.push("username")
@@ -116,10 +118,39 @@ export default function SignupScreen({ navigation }: Props) {
     return newErrors.length === 0
   }
 
-  const handleSubmit = () => {
-    if (validateForm()) {
-      console.log("Form submitted:", formData)
-      navigation.goBack()
+  const handleSubmit = async () => {
+    if (!validateForm()) return;
+  
+    try {
+      const response = await fetch("https://find-it-bersama-dia-safe-wheel.vercel.app/api/signup", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          safewheel_id: formData.safewheel_id,
+          user_email: formData.email,
+          user_password: formData.password,
+          user_name: formData.username,
+          sex: formData.sex,
+          dob: formData.dob,
+          bloodtype: formData.bloodType,
+          emergency_number: formData.emergencyNumber,
+          location_coordinates: "0,0"
+        })
+      })
+  
+      const data = await response.json();
+  
+      if (response.ok) {
+        alert("Account created successfully");
+        navigation.navigate("Login");
+      } else {
+        alert(data.message || "Signup failed");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Server error");
     }
   }
 
@@ -239,6 +270,7 @@ export default function SignupScreen({ navigation }: Props) {
           <Text style={styles.header}>Create Account</Text>
 
           <View style={styles.formContainer}>
+          {renderInputField("SafeWheel ID", "safewheel_id", "default", false, "Enter your SafeWheel ID")}
             {renderInputField("Email", "email", "email-address", false, "Enter your email")}
             {renderInputField("Password", "password", undefined, true, "Enter your password")}
             {renderInputField("Username", "username", undefined, false, "Enter your username")}
