@@ -131,42 +131,6 @@ app.post("/api/signup/guardian", async (req, res) => {
 
 // ====== LOGIN ======
 app.post("/api/login", async (req, res) => {
-  const { user_email, user_password } = req.body;
-
-  if (!user_email || !user_password) {
-    return res.status(400).json({ message: "Missing required fields" });
-  }
-
-  try {
-    // Cek apakah email ada
-    const user = await prisma.userWheelchair.findUnique({
-      where: { user_email },
-    });
-
-    if (!user) {
-      return res.status(401).json({ message: "Invalid email or password" });
-    }
-
-    // Cek password
-    const isPasswordValid = await bcrypt.compare(user_password, user.user_password);
-
-    if (!isPasswordValid) {
-      return res.status(401).json({ message: "Invalid email or password" });
-    }
-
-    const { user_password: _, ...safeUser } = user;
-
-    res.status(200).json({
-      message: "Login successful",
-      user: safeUser,
-    });
-  } catch (err) {
-    console.error("Login error:", err);
-    res.status(500).json({ message: "Server error" });
-  }
-});
-// ====== LOGIN GUARDIAN ======
-app.post("/api/login", async (req, res) => {
   const { email, password } = req.body;
 
   if (!email || !password)

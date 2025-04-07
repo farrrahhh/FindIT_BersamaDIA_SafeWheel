@@ -79,11 +79,30 @@ export default function LoginScreen({ navigation }: Props) {
       )
   
       if (response.status === 200) {
-        console.log("Login Success:", response.data)
-        await AsyncStorage.setItem('user_email', formData.email);
-        navigation.navigate("Homepage")
-
-      } else {
+        console.log("Login Success:", response.data);
+      
+        const { user, role } = response.data;
+      
+        try {
+          await AsyncStorage.setItem("user_email", user.user_email || formData.email);
+          await AsyncStorage.setItem("user_name", user.user_name || user.guardian_name || "");
+          console.log("Role to be saved:", role); // cek isinya
+          await AsyncStorage.setItem("user_role", role);
+      
+          const storedEmail = await AsyncStorage.getItem("user_email");
+          const storedName = await AsyncStorage.getItem("user_name");
+          const storedRole = await AsyncStorage.getItem("user_role");
+      
+          console.log("Stored Email:", storedEmail);
+          console.log("Stored Name:", storedName);
+          console.log("Stored Role:", storedRole);
+      
+          navigation.navigate("Homepage");
+        } catch (err) {
+          console.error("AsyncStorage Error:", err);
+          alert("Terjadi kesalahan saat menyimpan data.");
+        }
+      }else {
         console.warn("Login failed:", response.data.message || "Invalid credentials")
         alert(response.data.message || "Login failed")
       }
