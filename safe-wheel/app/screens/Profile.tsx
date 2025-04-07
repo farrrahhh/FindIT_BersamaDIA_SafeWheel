@@ -13,7 +13,7 @@ import {
 import { Feather } from "@expo/vector-icons"
 import { useNavigation } from "@react-navigation/native"
 import { StackNavigationProp } from "@react-navigation/stack"
-import { RootStackParamList } from "../navigation/AppNavigator"
+import { RootStackParamList } from "../navigation/AppNavigator.tsx"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import axios from "axios"
 
@@ -25,6 +25,11 @@ export default function Profile() {
   const [modalVisible, setModalVisible] = useState(false)
   const [fieldToEdit, setFieldToEdit] = useState<string>("")
   const [newValue, setNewValue] = useState("")
+
+  const isFieldEditable = (fieldKey: string) => {
+    const uneditableFields = ["dob", "user_email", "guardian_email"]
+    return !uneditableFields.includes(fieldKey)
+  }
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -52,7 +57,11 @@ export default function Profile() {
 
   const handleEdit = (field: string, currentValue: string) => {
     setFieldToEdit(field)
-    setNewValue(currentValue)
+    if (field === "password") {
+      setNewValue("")
+    } else {
+      setNewValue(currentValue)
+    }
     setModalVisible(true)
   }
 
@@ -61,9 +70,12 @@ export default function Profile() {
       const email = await AsyncStorage.getItem("user_email")
       const storedRole = await AsyncStorage.getItem("user_role")
 
-      const updates = {
-        [fieldToEdit]: newValue,
-      }
+      const updates =
+        fieldToEdit === "password"
+          ? storedRole === "guardian"
+            ? { guardian_password: newValue }
+            : { user_password: newValue }
+          : { [fieldToEdit]: newValue }
 
       await axios.put("https://find-it-bersama-dia-safe-wheel.vercel.app/api/user", {
         email,
@@ -71,10 +83,12 @@ export default function Profile() {
         updates,
       })
 
-      setUserData((prev: any) => ({
-        ...prev,
-        [fieldToEdit]: newValue,
-      }))
+      if (fieldToEdit !== "password") {
+        setUserData((prev: any) => ({
+          ...prev,
+          [fieldToEdit]: newValue,
+        }))
+      }
 
       setModalVisible(false)
     } catch (error) {
@@ -88,9 +102,11 @@ export default function Profile() {
         <Text style={styles.label}>{label}</Text>
         <Text style={styles.value}>{value || "-"}</Text>
       </View>
-      <TouchableOpacity onPress={() => handleEdit(fieldKey, value || "")}>
-        <Feather name="edit-3" size={20} color="#7B4EF7" />
-      </TouchableOpacity>
+      {isFieldEditable(fieldKey) && (
+        <TouchableOpacity onPress={() => handleEdit(fieldKey, value || "")}> 
+          <Feather name="edit-3" size={20} color="#7B4EF7" />
+        </TouchableOpacity>
+      )}
     </View>
   )
 
@@ -124,6 +140,7 @@ export default function Profile() {
             {renderItem("Golongan Darah", userData.bloodtype, "bloodtype")}
             {renderItem("No. Telepon", userData.emergency_number, "emergency_number")}
             {renderItem("Email", userData.user_email, "user_email")}
+            {renderItem("Ubah Password", "********", "password")}
           </>
         )}
 
@@ -131,8 +148,21 @@ export default function Profile() {
           <>
             {renderItem("Nama", userData.guardian_name, "guardian_name")}
             {renderItem("Email", userData.guardian_email, "guardian_email")}
+            {renderItem("Ubah Password", "********", "password")}
           </>
         )}
+        <TouchableOpacity
+          style={styles.logoutButton}
+          onPress={async () => {
+            await AsyncStorage.clear();
+            navigation.reset({
+              index: 0,
+              routes: [{ name: "Login" }],
+            })
+          }}
+        >
+          <Text style={styles.logoutText}>Log Out</Text>
+        </TouchableOpacity>
       </ScrollView>
 
       <Modal visible={modalVisible} animationType="slide" transparent>
@@ -144,6 +174,7 @@ export default function Profile() {
               value={newValue}
               onChangeText={setNewValue}
               placeholder="Masukkan nilai baru"
+              secureTextEntry={fieldToEdit === "password"}
             />
             <View style={styles.modalButtons}>
               <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.cancelButton}>
@@ -247,5 +278,19 @@ const styles = StyleSheet.create({
     backgroundColor: "#7B4EF7",
     padding: 10,
     borderRadius: 8,
+  },
+  logoutButton: {
+    marginTop: 40,
+    padding: 12,
+    backgroundColor: "#FF5A5F",
+    borderRadius: 8,
+    alignItems: "center",
+    alignSelf: "center",
+    width: "90%",
+  },
+  logoutText: {
+    color: "white",
+    fontWeight: "bold",
+    fontSize: 16,
   },
 })
