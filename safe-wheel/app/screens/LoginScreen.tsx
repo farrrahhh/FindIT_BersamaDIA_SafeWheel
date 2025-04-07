@@ -73,8 +73,8 @@ export default function LoginScreen({ navigation }: Props) {
       const response = await axios.post(
         "https://find-it-bersama-dia-safe-wheel.vercel.app/api/login",
         {
-          user_email: formData.email,
-          user_password: formData.password,
+          email: formData.email,
+          password: formData.password,
         }
       )
   
@@ -86,17 +86,10 @@ export default function LoginScreen({ navigation }: Props) {
         try {
           await AsyncStorage.setItem("user_email", user.user_email || formData.email);
           await AsyncStorage.setItem("user_name", user.user_name || user.guardian_name || "");
-          console.log("Role to be saved:", role); // cek isinya
           await AsyncStorage.setItem("user_role", role);
+          await AsyncStorage.setItem("safewheel_id", user.safewheel_id);
       
-          const storedEmail = await AsyncStorage.getItem("user_email");
-          const storedName = await AsyncStorage.getItem("user_name");
-          const storedRole = await AsyncStorage.getItem("user_role");
-      
-          console.log("Stored Email:", storedEmail);
-          console.log("Stored Name:", storedName);
-          console.log("Stored Role:", storedRole);
-      
+          
           navigation.navigate("Homepage");
         } catch (err) {
           console.error("AsyncStorage Error:", err);

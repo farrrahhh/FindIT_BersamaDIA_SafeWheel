@@ -179,6 +179,46 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
+
+
+
+// ====== GET USER WHEELCHAIR OR GUARDIAN DATA ======
+app.get("/api/user", async (req, res) => {
+  const { role, email } = req.query;
+
+  if (!role || !email) {
+    return res.status(400).json({ message: "Role and email are required" });
+  }
+
+  try {
+    if (role === "wheelchair") {
+      const user = await prisma.userWheelchair.findUnique({
+        where: { user_email: String(email) },
+      });
+      if (!user) return res.status(404).json({ message: "User not found" });
+
+      const { user_password, ...safeUser } = user;
+      return res.status(200).json({ user: safeUser });
+    }
+
+    if (role === "guardian") {
+      const user = await prisma.userGuardian.findUnique({
+        where: { guardian_email: String(email) },
+      });
+      if (!user) return res.status(404).json({ message: "User not found" });
+
+      const { guardian_password, ...safeUser } = user;
+      return res.status(200).json({ user: safeUser });
+    }
+
+    return res.status(400).json({ message: "Invalid role" });
+  } catch (err) {
+    console.error("Get user error:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+});
+
+
 // Start the server
 app.listen(PORT, () => {
   console.log(`Server is running`);

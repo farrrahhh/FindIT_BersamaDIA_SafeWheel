@@ -14,7 +14,7 @@ import Navbar from "../components/Navbar.tsx"
 import { useNavigation } from "@react-navigation/native"
 import { StackNavigationProp } from "@react-navigation/stack"
 import { RootStackParamList } from "../navigation/AppNavigator.ts"
-
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const screenWidth = Dimensions.get("window").width
 
@@ -43,6 +43,7 @@ export default function Homepage() {
     console.log("Navigate to Profile")
     navigation.navigate("Profile")
   }
+  const storedName = AsyncStorage.getItem("user_name");
 
   return (
     <SafeAreaView style={styles.wrapper}>
@@ -55,7 +56,7 @@ export default function Homepage() {
               onPress={handleNavigate}
             >
               <Ionicons name="person-circle-outline" size={32} color="#4B3EA8" />
-              <Text style={styles.greeting}>Hi, Mattheuw</Text>
+              <Text style={styles.greeting}>Hi, {storedName}</Text>
             </TouchableOpacity>
             <Feather name="bell" size={24} color="#4B3EA8" />
           </View>
