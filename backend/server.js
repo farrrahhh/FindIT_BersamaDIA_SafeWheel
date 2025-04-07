@@ -362,6 +362,99 @@ app.post("/api/notification/token", async (req, res) => {
   }
 });
 
+// ====== POST health_item ======
+// POST /api/health_item
+app.post("/api/health_item", async (req, res) => {
+  const { safewheel_id, user_timestamp, oxylevel, heartrate } = req.body;
+
+  if (!safewheel_id || !user_timestamp || oxylevel == null || heartrate == null) {
+    return res.status(400).json({ message: "All fields are required." });
+  }
+
+  try {
+    // Check if the safewheel_id exists in user_wheelchair
+    const wheelchairUser = await prisma.userWheelchair.findUnique({
+      where: { safewheel_id },
+    });
+
+    if (!wheelchairUser) {
+      return res.status(404).json({ message: "safewheel_id not found" });
+    }
+
+    // Create the health item record
+    const healthItem = await prisma.healthItem.create({
+      data: {
+        safewheel_id,
+        user_timestamp: new Date(user_timestamp),
+        oxylevel,
+        heartrate,
+      },
+    });
+
+    res.status(201).json({
+      message: "Health item created successfully",
+      healthItem,
+    });
+  } catch (err) {
+    console.error("Health item creation error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// ====== GET health_item ======
+// GET /api/health_item
+app.get("/api/health_item", async (req, res) => {
+  const { safewheel_id } = req.query;
+
+  if (!safewheel_id) {
+    return res.status(400).json({ message: "safewheel_id is required." });
+  }
+
+  try {
+    // Get the most recent health item for the given safewheel_id
+    const latestHealthItem = await prisma.healthItem.findFirst({
+      where: { safewheel_id },
+      orderBy: { user_timestamp: 'desc' },
+    });
+
+    if (!latestHealthItem) {
+      return res.status(404).json({ message: "No health items found for this safewheel_id." });
+    }
+
+    res.status(200).json({ healthItem: latestHealthItem });
+  } catch (err) {
+    console.error("Get health item error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// ====== GET all health_item by safewheel_id======
+app.get("/api/health_item/all", async (req, res) => {
+  const { safewheel_id } = req.query;
+
+  if (!safewheel_id) {
+    return res.status(400).json({ message: "safewheel_id is required." });
+  }
+
+  try {
+    // Get all health items for the given safewheel_id
+    const healthItems = await prisma.healthItem.findMany({
+      where: { safewheel_id },
+      orderBy: { user_timestamp: 'desc' },
+    });
+
+    if (healthItems.length === 0) {
+      return res.status(404).json({ message: "No health items found for this safewheel_id." });
+    }
+
+    res.status(200).json({ healthItems });
+  } catch (err) {
+    console.error("Get all health items error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+
 // Start the server
 app.listen(PORT, () => {
   console.log(`Server is running`);
