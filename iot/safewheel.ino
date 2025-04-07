@@ -3,6 +3,18 @@
 #include <MAX30100_PulseOximeter.h>
 #include <TinyGPSPlus.h>
 #include <HardwareSerial.h>
+#include <WiFi.h>
+#include <HTTPClient.h>
+
+// Ganti dengan nama dan password WiFi kamu
+const char* ssid = "NAMA_WIFI_KAMU";
+const char* password = "PASSWORD_WIFI_KAMU";
+
+// Endpoint API
+const char* apiURL = "https://find-it-bersama-dia-safe-wheel.vercel.app/api/user_alert_notification";
+
+// Ganti dengan SafeWheel ID milik user ini
+const char* safewheel_id = "SW12345678";
 
 // ================= PIN GPS ===================
 #define RXD2 16
@@ -23,9 +35,19 @@ PulseOximeter pox;
 uint32_t lastReport = 0;
 #define REPORTING_PERIOD_MS 1000
 
+float lastBPM = 0;
+float lastSpO2 = 0;
 void setup() {
   Serial.begin(115200);
   Wire.begin();
+  // WiFi
+  Serial.println("🔌 Menghubungkan ke WiFi...");
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("\n✅ WiFi terhubung!");
 
   // Start GPS
   gpsSerial.begin(GPS_BAUD, SERIAL_8N1, RXD2, TXD2);
@@ -67,19 +89,69 @@ void loop() {
   // Tampilkan tiap detik
   if (millis() - lastReport > REPORTING_PERIOD_MS) {
     lastReport = millis();
-
+  
+    float bpm = pox.getHeartRate();
+    float spo2 = pox.getSpO2();
+  
     Serial.println("\n========== UPDATE ==========");
     Serial.print("BPM: ");
-    Serial.print(pox.getHeartRate());
+    Serial.print(bpm);
     Serial.print(" | SpO2: ");
-    Serial.println(pox.getSpO2());
-
-    Serial.print("Pitch: ");
-    Serial.print(pitch, 2);
-    Serial.print(" | Roll: ");
-    Serial.print(roll, 2);
+    Serial.println(spo2);
+  
+    bool bpmChanged = abs(bpm - lastBPM) >= 1.0;
+    bool spo2Changed = abs(spo2 - lastSpO2) >= 1.0;
+  
+    if ((bpmChanged || spo2Changed) && WiFi.status() == WL_CONNECTED) {
+      HTTPClient http;
+      http.begin("https://find-it-bersama-dia-safe-wheel.vercel.app/api/health_item");
+      http.addHeader("Content-Type", "application/json");
+  
+      // Gunakan waktu device jika ada RTC/GPS, sementara pakai millis
+      String now = String(millis());
+  
+      String body = "{\"safewheel_id\":\"" + String(safewheel_id) +
+                    "\",\"user_timestamp\":\"" + now +
+                    "\",\"oxylevel\":" + String((int)spo2) +
+                    ",\"heartrate\":" + String((int)bpm) + "}";
+  
+      int responseCode = http.POST(body);
+      if (responseCode > 0) {
+        String res = http.getString();
+        Serial.print("✅ Health data sent: ");
+        Serial.println(res);
+      } else {
+        Serial.print("❌ Failed to send health data. Code: ");
+        Serial.println(responseCode);
+      }
+      http.end();
+  
+      lastBPM = bpm;
+      lastSpO2 = spo2;
+    }
 
     if (abs(pitch) > pitchThreshold || abs(roll) > rollThreshold) {
+      // Hanya kirim kalau WiFi aktif
+      if (WiFi.status() == WL_CONNECTED) {
+        HTTPClient http;
+        http.begin(apiURL);
+        http.addHeader("Content-Type", "application/json");
+
+        String jsonBody = "{\"safewheel_id\":\"" + String(safewheel_id) + "\",\"alert_timestamp\":\"" + String(millis()) + "\"}";
+
+        int httpResponseCode = http.POST(jsonBody);
+        if (httpResponseCode > 0) {
+          String response = http.getString();
+          Serial.print("✅ Notifikasi dikirim: ");
+          Serial.println(response);
+        } else {
+          Serial.print("❌ Gagal kirim notifikasi. Code: ");
+          Serial.println(httpResponseCode);
+        }
+        http.end();
+      } else {
+        Serial.println("❌ Tidak ada koneksi WiFi");
+      }
       Serial.println(" --> 🚨 JATUH!");
 
       if (gps.location.isValid()) {

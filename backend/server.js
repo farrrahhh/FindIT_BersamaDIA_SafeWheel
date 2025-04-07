@@ -289,7 +289,7 @@ app.post("/api/user_alert_notification", async (req, res) => {
     const alertNotification = await prisma.userAlertNotification.create({
       data: {
         safewheel_id,
-        alert_timestamp: new Date(alert_timestamp),
+        alert_timestamp: new Date(),
       },
     });
     const guardians = await prisma.userGuardian.findMany({
@@ -450,6 +450,31 @@ app.get("/api/health_item/all", async (req, res) => {
     res.status(200).json({ healthItems });
   } catch (err) {
     console.error("Get all health items error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// ====== PUT LOCATION USER ======
+app.put("/api/user_location", async (req, res) => {
+  const { safewheel_id, location_coordinates } = req.body;
+
+  if (!safewheel_id || !location_coordinates) {
+    return res.status(400).json({ message: "safewheel_id and location_coordinates are required" });
+  }
+
+  try {
+    // Update the user's location
+    const updatedUser = await prisma.userWheelchair.update({
+      where: { safewheel_id },
+      data: { location_coordinates },
+    });
+
+    res.status(200).json({
+      message: "User location updated successfully",
+      user: updatedUser,
+    });
+  } catch (err) {
+    console.error("Update user location error:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
