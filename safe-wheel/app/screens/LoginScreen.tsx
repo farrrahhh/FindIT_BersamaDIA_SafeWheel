@@ -18,6 +18,7 @@ import { Feather } from "@expo/vector-icons"
 import axios from "axios"
 type LoginScreenNavigationProp = StackNavigationProp<RootStackParamList, "Login">
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import usePushToken from "../usePushToken.tsx"
 interface LoginFormData {
   email: string
   password: string
@@ -78,6 +79,7 @@ export default function LoginScreen({ navigation }: Props) {
         }
       )
   
+      
       if (response.status === 200) {
         console.log("Login Success:", response.data);
       
@@ -89,7 +91,16 @@ export default function LoginScreen({ navigation }: Props) {
           await AsyncStorage.setItem("user_role", role);
           await AsyncStorage.setItem("safewheel_id", user.safewheel_id);
       
-          
+          // Dapatkan token dan simpan ke database
+          const expoToken = await usePushToken();
+      
+          if (expoToken) {
+            await axios.post("https://find-it-bersama-dia-safe-wheel.vercel.app/api/expo-token", {
+              email: user.user_email || formData.email,
+              expo_token: expoToken,
+            });
+          }
+      
           navigation.navigate("Homepage");
         } catch (err) {
           console.error("AsyncStorage Error:", err);

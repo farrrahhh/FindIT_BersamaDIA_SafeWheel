@@ -30,6 +30,7 @@ model UserGuardian {
   guardian_password String?         @db.VarChar(255)
   guardian_name     String?         @db.VarChar(255)
   safewheel_id      String?         @db.VarChar(255)
+  expo_token        String?         @db.VarChar(255)
   user              UserWheelchair? @relation(fields: [safewheel_id], references: [safewheel_id], onDelete: NoAction, onUpdate: NoAction, map: "user_guardian_ibfk_1")
 
   @@index([safewheel_id], map: "safewheel_id")

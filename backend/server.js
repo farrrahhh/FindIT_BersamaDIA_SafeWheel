@@ -4,6 +4,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import bcrypt from 'bcryptjs';
 import { PrismaClient } from '@prisma/client';
+import { sendPushNotification } from './utils/sendNotification'
 
 // Load .env
 dotenv.config();
@@ -265,6 +266,102 @@ app.put("/api/user", async (req, res) => {
     return res.status(500).json({ message: "Server error" });
   }
 });
+
+// ====== POST USER ALERT NOTIFICATION ======
+app.post("/api/user_alert_notification", async (req, res) => {
+  const { safewheel_id, alert_timestamp } = req.body;
+
+  if (!safewheel_id || !alert_timestamp) {
+    return res.status(400).json({ message: "safewheel_id and alert_timestamp are required" });
+  }
+
+  try {
+    // Check if the safewheel_id exists in user_wheelchair
+    const wheelchairUser = await prisma.userWheelchair.findUnique({
+      where: { safewheel_id },
+    });
+
+    if (!wheelchairUser) {
+      return res.status(404).json({ message: "safewheel_id not found" });
+    }
+
+    // Create the alert notification
+    const alertNotification = await prisma.userAlertNotification.create({
+      data: {
+        safewheel_id,
+        alert_timestamp: new Date(alert_timestamp),
+      },
+    });
+    const guardians = await prisma.userGuardian.findMany({
+      where: { safewheel_id },
+      select: { guardian_email: true, expo_token: true },
+    });
+    for (const guardian of guardians) {
+      if (guardian.expo_token) {
+        await sendPushNotification(
+          guardian.expo_token,
+          "🚨 Emergency Alert",
+          `Wheelchair user with ID ${safewheel_id} may need help.`
+        );
+      }
+    }
+    res.status(201).json({
+      message: "Alert notification created successfully",
+      alert: alertNotification,
+    });
+  } catch (err) {
+    console.error("Alert notification error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// ====== GET USER ALERT NOTIFICATION ======
+app.get("/api/user_alert_notification", async (req, res) => {
+  const { safewheel_id } = req.query;
+
+  if (!safewheel_id) {
+    return res.status(400).json({ message: "safewheel_id is required" });
+  }
+
+  try {
+    // Get the alert notifications for the given safewheel_id
+    const alerts = await prisma.userAlertNotification.findMany({
+      where: { safewheel_id },
+      orderBy: { alert_timestamp: 'desc' },
+    });
+
+    if (alerts.length === 0) {
+      return res.status(404).json({ message: "No alerts found for this safewheel_id" });
+    }
+
+    res.status(200).json({ alerts });
+  } catch (err) {
+    console.error("Get alerts error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+// ====== POST TOKEN ======
+// POST /api/notification/token
+app.post("/api/notification/token", async (req, res) => {
+  const { guardian_email, expo_token } = req.body;
+
+  if (!guardian_email || !expo_token) {
+    return res.status(400).json({ message: "guardian_email and expo_token are required." });
+  }
+
+  try {
+    const updated = await prisma.userGuardian.update({
+      where: { guardian_email },
+      data: { expo_token },
+    });
+
+    return res.status(200).json({ message: "Expo token saved successfully.", data: updated });
+  } catch (error) {
+    console.error("Failed to update expo_token:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 // Start the server
 app.listen(PORT, () => {
   console.log(`Server is running`);
