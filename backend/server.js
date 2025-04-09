@@ -2,9 +2,9 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import bcrypt from 'bcryptjs';
-import { PrismaClient } from '@prisma/client';
-import { sendPushNotification } from './utils/sendNotification'
+import bcrypt from "bcryptjs";
+import { PrismaClient } from "@prisma/client";
+import { sendPushNotification } from "./utils/sendNotification.js";
 
 // Load .env
 dotenv.config();
@@ -32,7 +32,7 @@ app.post("/api/signup", async (req, res) => {
     dob,
     bloodtype,
     emergency_number,
-    location_coordinates
+    location_coordinates,
   } = req.body;
 
   if (!safewheel_id || !user_email || !user_password || !user_name) {
@@ -89,9 +89,15 @@ app.post("/api/signup", async (req, res) => {
 
 // ====== SIGNUP USER GUARDIAN ======
 app.post("/api/signup/guardian", async (req, res) => {
-  const { guardian_email, guardian_password, guardian_name, safewheel_id } = req.body;
+  const { guardian_email, guardian_password, guardian_name, safewheel_id } =
+    req.body;
 
-  if (!guardian_email || !guardian_password || !guardian_name || !safewheel_id) {
+  if (
+    !guardian_email ||
+    !guardian_password ||
+    !guardian_name ||
+    !safewheel_id
+  ) {
     return res.status(400).json({ message: "Missing required fields" });
   }
 
@@ -135,7 +141,9 @@ app.post("/api/login", async (req, res) => {
   const { email, password } = req.body;
 
   if (!email || !password)
-    return res.status(400).json({ message: "Email and password are required." });
+    return res
+      .status(400)
+      .json({ message: "Email and password are required." });
 
   try {
     // Coba cari di user_wheelchair
@@ -144,7 +152,10 @@ app.post("/api/login", async (req, res) => {
     });
 
     if (wheelchairUser) {
-      const valid = await bcrypt.compare(password, wheelchairUser.user_password);
+      const valid = await bcrypt.compare(
+        password,
+        wheelchairUser.user_password
+      );
       if (!valid) return res.status(401).json({ message: "Invalid password" });
 
       const { user_password, ...safeUser } = wheelchairUser;
@@ -161,7 +172,10 @@ app.post("/api/login", async (req, res) => {
     });
 
     if (guardianUser) {
-      const valid = await bcrypt.compare(password, guardianUser.guardian_password);
+      const valid = await bcrypt.compare(
+        password,
+        guardianUser.guardian_password
+      );
       if (!valid) return res.status(401).json({ message: "Invalid password" });
 
       const { guardian_password, ...safeUser } = guardianUser;
@@ -179,9 +193,6 @@ app.post("/api/login", async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
-
-
-
 
 // ====== GET USER WHEELCHAIR OR GUARDIAN DATA ======
 app.get("/api/user", async (req, res) => {
@@ -224,7 +235,9 @@ app.put("/api/user", async (req, res) => {
   const { role, email, updates } = req.body;
 
   if (!role || !email || !updates) {
-    return res.status(400).json({ message: "Role, email, and updates are required" });
+    return res
+      .status(400)
+      .json({ message: "Role, email, and updates are required" });
   }
 
   try {
@@ -241,7 +254,9 @@ app.put("/api/user", async (req, res) => {
       });
 
       const { user_password, ...safeUser } = updatedUser;
-      return res.status(200).json({ message: "User updated successfully", user: safeUser });
+      return res
+        .status(200)
+        .json({ message: "User updated successfully", user: safeUser });
     }
 
     if (role === "guardian") {
@@ -257,7 +272,9 @@ app.put("/api/user", async (req, res) => {
       });
 
       const { guardian_password, ...safeUser } = updatedUser;
-      return res.status(200).json({ message: "User updated successfully", user: safeUser });
+      return res
+        .status(200)
+        .json({ message: "User updated successfully", user: safeUser });
     }
 
     return res.status(400).json({ message: "Invalid role" });
@@ -272,7 +289,9 @@ app.post("/api/user_alert_notification", async (req, res) => {
   const { safewheel_id, alert_timestamp } = req.body;
 
   if (!safewheel_id || !alert_timestamp) {
-    return res.status(400).json({ message: "safewheel_id and alert_timestamp are required" });
+    return res
+      .status(400)
+      .json({ message: "safewheel_id and alert_timestamp are required" });
   }
 
   try {
@@ -327,11 +346,13 @@ app.get("/api/user_alert_notification", async (req, res) => {
     // Get the alert notifications for the given safewheel_id
     const alerts = await prisma.userAlertNotification.findMany({
       where: { safewheel_id },
-      orderBy: { alert_timestamp: 'desc' },
+      orderBy: { alert_timestamp: "desc" },
     });
 
     if (alerts.length === 0) {
-      return res.status(404).json({ message: "No alerts found for this safewheel_id" });
+      return res
+        .status(404)
+        .json({ message: "No alerts found for this safewheel_id" });
     }
 
     res.status(200).json({ alerts });
@@ -346,7 +367,9 @@ app.post("/api/notification/token", async (req, res) => {
   const { guardian_email, expo_token } = req.body;
 
   if (!guardian_email || !expo_token) {
-    return res.status(400).json({ message: "guardian_email and expo_token are required." });
+    return res
+      .status(400)
+      .json({ message: "guardian_email and expo_token are required." });
   }
 
   try {
@@ -355,7 +378,9 @@ app.post("/api/notification/token", async (req, res) => {
       data: { expo_token },
     });
 
-    return res.status(200).json({ message: "Expo token saved successfully.", data: updated });
+    return res
+      .status(200)
+      .json({ message: "Expo token saved successfully.", data: updated });
   } catch (error) {
     console.error("Failed to update expo_token:", error);
     return res.status(500).json({ message: "Internal server error" });
@@ -367,7 +392,12 @@ app.post("/api/notification/token", async (req, res) => {
 app.post("/api/health_item", async (req, res) => {
   const { safewheel_id, user_timestamp, oxylevel, heartrate } = req.body;
 
-  if (!safewheel_id || !user_timestamp || oxylevel == null || heartrate == null) {
+  if (
+    !safewheel_id ||
+    !user_timestamp ||
+    oxylevel == null ||
+    heartrate == null
+  ) {
     return res.status(400).json({ message: "All fields are required." });
   }
 
@@ -414,11 +444,13 @@ app.get("/api/health_item", async (req, res) => {
     // Get the most recent health item for the given safewheel_id
     const latestHealthItem = await prisma.healthItem.findFirst({
       where: { safewheel_id },
-      orderBy: { user_timestamp: 'desc' },
+      orderBy: { user_timestamp: "desc" },
     });
 
     if (!latestHealthItem) {
-      return res.status(404).json({ message: "No health items found for this safewheel_id." });
+      return res
+        .status(404)
+        .json({ message: "No health items found for this safewheel_id." });
     }
 
     res.status(200).json({ healthItem: latestHealthItem });
@@ -440,11 +472,13 @@ app.get("/api/health_item/all", async (req, res) => {
     // Get all health items for the given safewheel_id
     const healthItems = await prisma.healthItem.findMany({
       where: { safewheel_id },
-      orderBy: { user_timestamp: 'desc' },
+      orderBy: { user_timestamp: "desc" },
     });
 
     if (healthItems.length === 0) {
-      return res.status(404).json({ message: "No health items found for this safewheel_id." });
+      return res
+        .status(404)
+        .json({ message: "No health items found for this safewheel_id." });
     }
 
     res.status(200).json({ healthItems });
@@ -459,7 +493,9 @@ app.put("/api/user_location", async (req, res) => {
   const { safewheel_id, location_coordinates } = req.body;
 
   if (!safewheel_id || !location_coordinates) {
-    return res.status(400).json({ message: "safewheel_id and location_coordinates are required" });
+    return res
+      .status(400)
+      .json({ message: "safewheel_id and location_coordinates are required" });
   }
 
   try {
@@ -478,7 +514,6 @@ app.put("/api/user_location", async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
-
 
 // Start the server
 app.listen(PORT, () => {
