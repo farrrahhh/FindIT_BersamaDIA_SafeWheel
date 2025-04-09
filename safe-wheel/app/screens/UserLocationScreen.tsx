@@ -4,45 +4,77 @@ import MapView, { Marker } from "react-native-maps"
 import * as Location from "expo-location"
 import { Ionicons } from "@expo/vector-icons"
 import Navbar from "../components/Navbar.tsx"
+import AsyncStorage from "@react-native-async-storage/async-storage"
+import axios from "axios"
 
 export default function UserLocationScreen() {
-  const [location, setLocation] = useState<Location.LocationObject | null>(null)
+  const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null)
   const [address, setAddress] = useState<string>("")
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     (async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync()
-      if (status !== "granted") {
-        alert("Permission to access location was denied")
+      const role = await AsyncStorage.getItem("role")
+      const safewheel_id = await AsyncStorage.getItem("safewheel_id")
+
+      if (!safewheel_id) {
         setLoading(false)
         return
       }
 
-      const loc = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Highest,
-      })
-      setLocation(loc)
+      if (role === "guardian") {
+        try {
+          const response = await axios.get("https://find-it-bersama-dia-safe-wheel.vercel.app/api/user_location", {
+            params: { safewheel_id },
+          })
+          const [lat, lon] = response.data.location_coordinates.split(",").map(Number)
+          setLocation({ latitude: lat, longitude: lon })
 
-      const geo = await Location.reverseGeocodeAsync({
-        latitude: loc.coords.latitude,
-        longitude: loc.coords.longitude,
-      })
+          const geo = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lon })
+          if (geo.length > 0) {
+            const { street, district, subregion, city, region } = geo[0]
+            const formatted = `${street ?? ""}, ${district ?? ""}, ${subregion ?? ""}, ${city ?? ""}, ${region ?? ""}`
+            setAddress(formatted)
+          }
+        } catch (err) {
+          console.error("Guardian location fetch error:", err)
+        } finally {
+          setLoading(false)
+        }
+      } else {
+        const { status } = await Location.requestForegroundPermissionsAsync()
+        if (status !== "granted") {
+          alert("Permission to access location was denied")
+          setLoading(false)
+          return
+        }
 
-      if (geo.length > 0) {
-        const { street, district, subregion, city, region } = geo[0]
-        const formatted = `${street ?? ""}, ${district ?? ""}, ${subregion ?? ""}, ${city ?? ""}, ${region ?? ""}`
-        setAddress(formatted)
+        const loc = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Highest,
+        })
+        setLocation({
+          latitude: loc.coords.latitude,
+          longitude: loc.coords.longitude,
+        })
+
+        const geo = await Location.reverseGeocodeAsync({
+          latitude: loc.coords.latitude,
+          longitude: loc.coords.longitude,
+        })
+
+        if (geo.length > 0) {
+          const { street, district, subregion, city, region } = geo[0]
+          const formatted = `${street ?? ""}, ${district ?? ""}, ${subregion ?? ""}, ${city ?? ""}, ${region ?? ""}`
+          setAddress(formatted)
+        }
+        setLoading(false)
       }
-
-      setLoading(false)
     })()
   }, [])
 
   const openGoogleMaps = () => {
     if (location) {
-      const { latitude, longitude } = location.coords
-      Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`)
+      Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${location.latitude},${location.longitude}`)
     }
   }
 
@@ -59,16 +91,16 @@ export default function UserLocationScreen() {
       <MapView
         style={styles.map}
         region={{
-          latitude: location.coords.latitude,
-          longitude: location.coords.longitude,
+          latitude: location.latitude,
+          longitude: location.longitude,
           latitudeDelta: 0.005,
           longitudeDelta: 0.005,
         }}
       >
         <Marker
           coordinate={{
-            latitude: location.coords.latitude,
-            longitude: location.coords.longitude,
+            latitude: location.latitude,
+            longitude: location.longitude,
           }}
         >
           <Ionicons name="location" size={30} color="#5E3DB4" />
@@ -85,7 +117,6 @@ export default function UserLocationScreen() {
         </TouchableOpacity>
       </View>
       <Navbar />
-
     </View>
   )
 }
