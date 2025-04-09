@@ -362,8 +362,7 @@ app.get("/api/user_alert_notification", async (req, res) => {
   }
 });
 // ====== POST TOKEN ======
-// POST /api/notification/token
-app.post("/api/notification/token", async (req, res) => {
+app.post("/api/expo-token", async (req, res) => {
   const { guardian_email, expo_token } = req.body;
 
   if (!guardian_email || !expo_token) {
