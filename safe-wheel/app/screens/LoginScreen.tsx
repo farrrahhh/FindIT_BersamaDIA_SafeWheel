@@ -35,6 +35,7 @@ export default function LoginScreen({ navigation }: Props) {
   })
   const [errors, setErrors] = useState<string[]>([])
   const [showPassword, setShowPassword] = useState(false)
+  const expoToken = usePushToken()
 
   // Check if a field value is valid
   const isFieldValid = (field: keyof LoginFormData, value: string) => {
@@ -91,11 +92,10 @@ export default function LoginScreen({ navigation }: Props) {
           await AsyncStorage.setItem("user_role", role);
           await AsyncStorage.setItem("safewheel_id", user.safewheel_id);
       
-          // Dapatkan token dan simpan ke database
-          const expoToken = await usePushToken();
+         
       
           if (expoToken) {
-            await axios.post("https://find-it-bersama-dia-safe-wheel.vercel.app/api/expo-token", {
+            await axios.post("https://find-it-bersama-dia-safe-wheel.vercel.app/api/notification/token", {
               email: user.user_email || formData.email,
               expo_token: expoToken,
             });

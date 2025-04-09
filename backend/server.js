@@ -307,7 +307,7 @@ app.post("/api/user_alert_notification", async (req, res) => {
     // Create the alert notification
     const alertNotification = await prisma.userAlertNotification.create({
       data: {
-        safewheel_id,
+        safewheel_id: safewheel_id, // Ensure the field name matches your database schema
         alert_timestamp: new Date(),
       },
     });
