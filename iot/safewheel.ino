@@ -6,41 +6,43 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 
-// Ganti dengan nama dan password WiFi kamu
-const char* ssid = "NAMA_WIFI_KAMU";
-const char* password = "PASSWORD_WIFI_KAMU";
+// WiFi credentials
+const char* ssid = "esp32";
+const char* password = "bersamadia";
 
-// Endpoint API
-const char* apiURL = "https://find-it-bersama-dia-safe-wheel.vercel.app/api/user_alert_notification";
+// API endpoints
+const char* apiHealth = "https://find-it-bersama-dia-safe-wheel.vercel.app/api/health_item";
+const char* apiAlert  = "https://find-it-bersama-dia-safe-wheel.vercel.app/api/user_alert_notification";
 
-// Ganti dengan SafeWheel ID milik user ini
-const char* safewheel_id = "SW12345678";
+// SafeWheel ID
+const char* safewheel_id = "SW8X9Z2L1Q";
 
-// ================= PIN GPS ===================
+// GPS
 #define RXD2 16
 #define TXD2 17
 #define GPS_BAUD 9600
-
-HardwareSerial gpsSerial(2);  // UART2 di ESP32
+HardwareSerial gpsSerial(2);
 TinyGPSPlus gps;
 
-// ================= MPU6050 ===================
+// MPU6050
 MPU6050 mpu;
 float pitch, roll;
 const float pitchThreshold = 30.0;
 const float rollThreshold = 30.0;
 
-// ================= MAX30100 ==================
+// MAX30100
 PulseOximeter pox;
 uint32_t lastReport = 0;
-#define REPORTING_PERIOD_MS 1000
+#define REPORTING_PERIOD_MS 3000
 
 float lastBPM = 0;
 float lastSpO2 = 0;
+
 void setup() {
   Serial.begin(115200);
   Wire.begin();
-  // WiFi
+
+  // Connect WiFi
   Serial.println("🔌 Menghubungkan ke WiFi...");
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) {
@@ -49,11 +51,11 @@ void setup() {
   }
   Serial.println("\n✅ WiFi terhubung!");
 
-  // Start GPS
+  // GPS
   gpsSerial.begin(GPS_BAUD, SERIAL_8N1, RXD2, TXD2);
-  Serial.println("GPS Serial2 started at 9600 baud");
+  Serial.println("✅ GPS siap");
 
-  // Start MPU6050
+  // MPU6050
   mpu.initialize();
   if (!mpu.testConnection()) {
     Serial.println("❌ MPU6050 tidak terdeteksi!");
@@ -61,7 +63,7 @@ void setup() {
   }
   Serial.println("✅ MPU6050 terdeteksi");
 
-  // Start MAX30100
+  // MAX30100
   if (!pox.begin()) {
     Serial.println("❌ MAX30100 tidak terdeteksi!");
     while (1);
@@ -70,113 +72,98 @@ void setup() {
   Serial.println("✅ MAX30100 terdeteksi");
 }
 
+String getISOTimestamp() {
+  if (gps.date.isValid() && gps.time.isValid()) {
+    char iso[30];
+    sprintf(iso, "2025-%02d-%02dT%02d:%02d:%02d.000Z",
+            gps.date.month(), gps.date.day(),
+            gps.time.hour(), gps.time.minute(), gps.time.second());
+    return String(iso);
+  } else {
+    return "";  // GPS belum fix
+  }
+}
+
 void loop() {
   pox.update();
 
-  // Baca & tampilkan data mentah dari GPS (debug)
+  // Baca GPS
   while (gpsSerial.available()) {
-    char c = gpsSerial.read();
-    Serial.write(c); // tampilkan data mentah NMEA
-    gps.encode(c);   // parsing ke TinyGPSPlus
+    gps.encode(gpsSerial.read());
   }
 
-  // MPU6050
+  // Baca MPU6050
   int16_t ax, ay, az, gx, gy, gz;
   mpu.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
   pitch = atan2(ax, sqrt(ay * ay + az * az)) * 180 / PI;
   roll  = atan2(ay, sqrt(ax * ax + az * az)) * 180 / PI;
 
-  // Tampilkan tiap detik
   if (millis() - lastReport > REPORTING_PERIOD_MS) {
     lastReport = millis();
-  
+    String isoTime = getISOTimestamp();
+    if (isoTime == "") {
+      Serial.println("❌ GPS belum fix waktu, skip update...");
+      return;
+    }
+
     float bpm = pox.getHeartRate();
     float spo2 = pox.getSpO2();
-  
-    Serial.println("\n========== UPDATE ==========");
-    Serial.print("BPM: ");
-    Serial.print(bpm);
-    Serial.print(" | SpO2: ");
-    Serial.println(spo2);
-  
+
+    Serial.println("\n========= DATA =========");
+    Serial.printf("BPM: %.2f | SpO2: %.2f\n", bpm, spo2);
+    Serial.printf("Pitch: %.2f | Roll: %.2f\n", pitch, roll);
+    Serial.println("ISO Time: " + isoTime);
+
+    // ===== SEND HEALTH DATA =====
     bool bpmChanged = abs(bpm - lastBPM) >= 1.0;
     bool spo2Changed = abs(spo2 - lastSpO2) >= 1.0;
-  
+
     if ((bpmChanged || spo2Changed) && WiFi.status() == WL_CONNECTED) {
       HTTPClient http;
-      http.begin("https://find-it-bersama-dia-safe-wheel.vercel.app/api/health_item");
+      http.begin(apiHealth);
       http.addHeader("Content-Type", "application/json");
-  
-      // Gunakan waktu device jika ada RTC/GPS, sementara pakai millis
-      String now = String(millis());
-  
-      String body = "{\"safewheel_id\":\"" + String(safewheel_id) +
-                    "\",\"user_timestamp\":\"" + now +
-                    "\",\"oxylevel\":" + String((int)spo2) +
-                    ",\"heartrate\":" + String((int)bpm) + "}";
-  
-      int responseCode = http.POST(body);
-      if (responseCode > 0) {
-        String res = http.getString();
-        Serial.print("✅ Health data sent: ");
-        Serial.println(res);
+
+      String json = "{\"safewheel_id\":\"" + String(safewheel_id) + "\",";
+      json += "\"user_timestamp\":\"" + isoTime + "\",";
+      json += "\"oxylevel\":" + String((int)spo2) + ",";
+      json += "\"heartrate\":" + String((int)bpm) + "}";
+
+      int code = http.POST(json);
+      if (code > 0) {
+        Serial.println("✅ Health sent: " + http.getString());
       } else {
-        Serial.print("❌ Failed to send health data. Code: ");
-        Serial.println(responseCode);
+        Serial.println("❌ Failed to send health. Code: " + String(code));
       }
       http.end();
-  
       lastBPM = bpm;
       lastSpO2 = spo2;
     }
 
+    // ===== DETECTION FALL (ALERT) =====
     if (abs(pitch) > pitchThreshold || abs(roll) > rollThreshold) {
-      // Hanya kirim kalau WiFi aktif
+      Serial.println("🚨 POTENSI JATUH TERDETEKSI");
+
       if (WiFi.status() == WL_CONNECTED) {
         HTTPClient http;
-        http.begin(apiURL);
+        http.begin(apiAlert);
         http.addHeader("Content-Type", "application/json");
 
-        String jsonBody = "{\"safewheel_id\":\"" + String(safewheel_id) + "\",\"alert_timestamp\":\"" + String(millis()) + "\"}";
+        String json = "{\"safewheel_id\":\"" + String(safewheel_id) + "\",";
+        json += "\"alert_timestamp\":\"" + isoTime + "\"}";
 
-        int httpResponseCode = http.POST(jsonBody);
-        if (httpResponseCode > 0) {
-          String response = http.getString();
-          Serial.print("✅ Notifikasi dikirim: ");
-          Serial.println(response);
+        int code = http.POST(json);
+        if (code > 0) {
+          Serial.println("✅ Alert sent: " + http.getString());
         } else {
-          Serial.print("❌ Gagal kirim notifikasi. Code: ");
-          Serial.println(httpResponseCode);
+          Serial.println("❌ Failed to send alert. Code: " + String(code));
         }
         http.end();
-      } else {
-        Serial.println("❌ Tidak ada koneksi WiFi");
       }
-      Serial.println(" --> 🚨 JATUH!");
-
-      if (gps.location.isValid()) {
-        Serial.print("✅ Lokasi: ");
-        Serial.print(gps.location.lat(), 6);
-        Serial.print(", ");
-        Serial.println(gps.location.lng(), 6);
-      } else {
-        Serial.println("❌ Lokasi belum fix");
-      }
-    } else {
-      Serial.println(" --> Aman ✅");
     }
 
-    Serial.print("📡 Satelit: ");
-    Serial.println(gps.satellites.value());
-
-    Serial.print("⏰ Waktu (UTC): ");
-    Serial.print(gps.time.hour());
-    Serial.print(":");
-    Serial.print(gps.time.minute());
-    Serial.print(":");
-    Serial.println(gps.time.second());
-
-    Serial.println("-------------------------------");
+    Serial.println("📡 Satelit: " + String(gps.satellites.value()));
+    Serial.printf("📍 Lokasi: %.6f, %.6f\n", gps.location.lat(), gps.location.lng());
+    Serial.println("=============================");
   }
 
   delay(10);
