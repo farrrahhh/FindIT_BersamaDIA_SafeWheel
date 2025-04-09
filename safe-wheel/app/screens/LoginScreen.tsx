@@ -1,6 +1,4 @@
-"use client"
-
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import {
   SafeAreaView,
   ScrollView,
@@ -13,12 +11,14 @@ import {
   StatusBar,
 } from "react-native"
 import type { StackNavigationProp } from "@react-navigation/stack"
-import type { RootStackParamList } from "../navigation/AppNavigator.tsx"
+import type { RootStackParamList } from "../navigation/AppNavigator"
 import { Feather } from "@expo/vector-icons"
 import axios from "axios"
+import AsyncStorage from '@react-native-async-storage/async-storage'
+import usePushToken from "../usePushToken"
+
 type LoginScreenNavigationProp = StackNavigationProp<RootStackParamList, "Login">
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import usePushToken from "../usePushToken.tsx"
+
 interface LoginFormData {
   email: string
   password: string
@@ -35,9 +35,16 @@ export default function LoginScreen({ navigation }: Props) {
   })
   const [errors, setErrors] = useState<string[]>([])
   const [showPassword, setShowPassword] = useState(false)
-  const expoToken = usePushToken()
+  const [expoToken, setExpoToken] = useState<string | null>(null)
 
-  // Check if a field value is valid
+  useEffect(() => {
+    const fetchToken = async () => {
+      const token = await usePushToken()
+      setExpoToken(token)
+    }
+    fetchToken()
+  }, [])
+
   const isFieldValid = (field: keyof LoginFormData, value: string) => {
     switch (field) {
       case "email":
@@ -49,17 +56,13 @@ export default function LoginScreen({ navigation }: Props) {
     }
   }
 
-  // Update a field and remove its error if it now passes validation
   const updateField = (field: keyof LoginFormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
-    if (errors.includes(field)) {
-      if (isFieldValid(field, value)) {
-        setErrors((prevErrors) => prevErrors.filter((e) => e !== field))
-      }
+    if (errors.includes(field) && isFieldValid(field, value)) {
+      setErrors((prev) => prev.filter((e) => e !== field))
     }
   }
 
-  // Validate the form and return true if valid
   const validateForm = () => {
     const newErrors: string[] = []
     if (!formData.email.includes("@")) newErrors.push("email")
@@ -70,48 +73,36 @@ export default function LoginScreen({ navigation }: Props) {
 
   const handleSubmit = async () => {
     if (!validateForm()) return;
-  
+
     try {
       const response = await axios.post(
         "https://find-it-bersama-dia-safe-wheel.vercel.app/api/login",
-        {
-          email: formData.email,
-          password: formData.password,
-        }
+        formData
       )
-  
-      
+
       if (response.status === 200) {
-        console.log("Login Success:", response.data);
-      
-        const { user, role } = response.data;
-      
-        try {
-          await AsyncStorage.setItem("user_email", user.user_email || formData.email);
-          await AsyncStorage.setItem("user_name", user.user_name || user.guardian_name || "");
-          await AsyncStorage.setItem("user_role", role);
-          await AsyncStorage.setItem("safewheel_id", user.safewheel_id);
-      
-         
-      
-          if (expoToken) {
-            await axios.post("https://find-it-bersama-dia-safe-wheel.vercel.app/api/notification/token", {
-              email: user.user_email || formData.email,
-              expo_token: expoToken,
-            });
-          }
-      
-          navigation.navigate("Homepage");
-        } catch (err) {
-          console.error("AsyncStorage Error:", err);
-          alert("Terjadi kesalahan saat menyimpan data.");
+        const { user, role } = response.data
+        console.log("Login Success:", response.data)
+
+        await AsyncStorage.setItem("user_email", user.user_email || formData.email)
+        await AsyncStorage.setItem("user_name", user.user_name || user.guardian_name || "")
+        await AsyncStorage.setItem("user_role", role)
+        await AsyncStorage.setItem("safewheel_id", user.safewheel_id)
+
+        if (expoToken && role === "guardian") {
+          await axios.post("https://find-it-bersama-dia-safe-wheel.vercel.app/api/expo-token", {
+            guardian_email: user.guardian_email || user.user_email || formData.email,
+            expo_token: expoToken,
+          })
+          console.log("✅ Expo token saved")
         }
-      }else {
-        console.warn("Login failed:", response.data.message || "Invalid credentials")
+
+        navigation.navigate("Homepage")
+      } else {
         alert(response.data.message || "Login failed")
       }
     } catch (error: any) {
-      console.error("Error:", error)
+      console.error("Login error:", error)
       alert(error?.response?.data?.message || "Login error occurred")
     }
   }
