@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react"
+// Homepage.tsx
+import React, { useEffect, useState, useCallback } from "react"
 import {
   View,
   Text,
@@ -12,13 +13,11 @@ import {
 import { LineChart } from "react-native-chart-kit"
 import { Ionicons, Feather } from "@expo/vector-icons"
 import Navbar from "../components/Navbar.tsx"
-import { useNavigation } from "@react-navigation/native"
+import { useNavigation, useFocusEffect } from "@react-navigation/native"
 import { StackNavigationProp } from "@react-navigation/stack"
 import { RootStackParamList } from "../navigation/AppNavigator.ts"
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from "axios"
-import { useFocusEffect } from "@react-navigation/native"
-import { useCallback } from "react"
 
 const screenWidth = Dimensions.get("window").width
 
@@ -26,9 +25,11 @@ export default function Homepage() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>()
   const [storedName, setStoredName] = useState("")
   const [unreadCount, setUnreadCount] = useState(0)
-  const [chartData, setChartData] = useState({ labels: [], datasets: [] })
+  const [chartData, setChartData] = useState<any>({ labels: [], datasets: [] })
   const [activeData, setActiveData] = useState<"heartRate" | "oxygen">("heartRate")
   const [loading, setLoading] = useState(true)
+  const [latestHeartRate, setLatestHeartRate] = useState(0)
+  const [latestOxygen, setLatestOxygen] = useState(0)
 
   useFocusEffect(
     useCallback(() => {
@@ -82,16 +83,35 @@ export default function Homepage() {
           )
         })
 
+        // Ambil satu data per jam
+        const seenHours = new Set()
+        const filteredByHour: any[] = []
+        for (const item of todayItems) {
+          const date = new Date(item.user_timestamp)
+          const hour = date.getHours()
+          if (!seenHours.has(hour)) {
+            seenHours.add(hour)
+            filteredByHour.push(item)
+          }
+        }
+
+        // Urutkan dari jam kecil ke besar
+        filteredByHour.sort((a, b) => new Date(a.user_timestamp).getTime() - new Date(b.user_timestamp).getTime())
+
         const labels: string[] = []
         const heartData: number[] = []
         const oxygenData: number[] = []
 
-        todayItems.reverse().forEach((item: any) => {
-          const time = new Date(item.user_timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-          labels.push(time)
-          heartData.push(item.heart_rate)
-          oxygenData.push(item.oxygen)
+        filteredByHour.forEach((item) => {
+          const date = new Date(item.user_timestamp)
+          const timeLabel = `${date.getHours().toString().padStart(2, "0")}:00`
+          labels.push(timeLabel)
+          heartData.push(item.heartrate ?? 0)
+          oxygenData.push(item.oxylevel ?? 0)
         })
+
+        setLatestHeartRate(heartData[heartData.length - 1] || 0)
+        setLatestOxygen(oxygenData[oxygenData.length - 1] || 0)
 
         setChartData({
           labels,
@@ -125,7 +145,6 @@ export default function Homepage() {
     <SafeAreaView style={styles.wrapper}>
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.container}>
-          {/* Header */}
           <View style={styles.header}>
             <TouchableOpacity
               style={{ flexDirection: "row", alignItems: "center" }}
@@ -144,21 +163,19 @@ export default function Homepage() {
             </TouchableOpacity>
           </View>
 
-          {/* Top Cards */}
           <View style={styles.topCards}>
             <View style={styles.cardGradient}>
               <Text style={styles.cardTitle}>Heart</Text>
               <Ionicons name="heart" size={48} color="#4B3EA8" style={{ marginVertical: 8 }} />
-              <Text style={styles.cardValue}>{activeData === "heartRate" ? "" : ""}mbp</Text>
+              <Text style={styles.cardValue}>{latestHeartRate} bpm</Text>
             </View>
             <View style={styles.cardBordered}>
               <Text style={styles.cardTitle}>Oxygen</Text>
               <Ionicons name="water" size={48} color="#4B3EA8" style={{ marginVertical: 8 }} />
-              <Text style={styles.cardValue}>{activeData === "oxygen" ? "" : ""}% OS</Text>
+              <Text style={styles.cardValue}>{latestOxygen}% OS</Text>
             </View>
           </View>
 
-          {/* Chart Section */}
           <View style={styles.chartContainer}>
             <View style={styles.toggleRow}>
               <TouchableOpacity
@@ -177,7 +194,7 @@ export default function Homepage() {
 
             {loading ? (
               <ActivityIndicator size="large" color="#6a4fff" />
-            ) : (
+            ) : chartData?.datasets?.[0]?.data?.length > 0 ? (
               <LineChart
                 data={chartData}
                 width={screenWidth - 60}
@@ -195,16 +212,17 @@ export default function Homepage() {
                     strokeWidth: "2",
                     stroke: "#fff",
                   },
+                  formatXLabel: (label: string) => label.replace(":00", "")
                 }}
                 bezier
                 style={{ marginTop: 12, borderRadius: 12 }}
               />
+            ) : (
+              <Text style={{ textAlign: "center", color: "#999" }}>No data available</Text>
             )}
           </View>
         </View>
       </ScrollView>
-
-      {/* Fixed Navbar at Bottom */}
       <View style={styles.navbarContainer}>
         <Navbar />
       </View>
@@ -213,111 +231,23 @@ export default function Homepage() {
 }
 
 const styles = StyleSheet.create({
-  wrapper: {
-    flex: 1,
-    backgroundColor: "#fff",
-    position: "relative",
-  },
-  scroll: {
-    paddingBottom: 100,
-  },
-  container: {
-    paddingTop: 60,
-    paddingHorizontal: 20,
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 24,
-  },
-  greeting: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginLeft: 10,
-    color: "#4B3EA8",
-  },
-  badge: {
-    position: "absolute",
-    top: -5,
-    right: -8,
-    backgroundColor: "#FF4D4D",
-    borderRadius: 10,
-    width: 20,
-    height: 20,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  badgeText: {
-    color: "white",
-    fontSize: 12,
-    fontWeight: "bold",
-  },
-  topCards: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  cardGradient: {
-    flex: 1,
-    marginRight: 10,
-    padding: 20,
-    backgroundColor: "#F3F0FF",
-    borderRadius: 16,
-    alignItems: "center",
-  },
-  cardBordered: {
-    flex: 1,
-    marginLeft: 10,
-    padding: 20,
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: "#D7CFFF",
-    alignItems: "center",
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#4B3EA8",
-  },
-  cardValue: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: "#4B3EA8",
-  },
-  chartContainer: {
-    marginTop: 30,
-    backgroundColor: "#fff",
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: "#D7CFFF",
-  },
-  toggleRow: {
-    flexDirection: "row",
-    marginBottom: 12,
-  },
-  toggleButton: {
-    marginRight: 16,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    backgroundColor: "#EFE9FE",
-  },
-  toggleActive: {
-    backgroundColor: "#D6CBF7",
-  },
-  toggleText: {
-    fontSize: 14,
-    color: "#4B3EA8",
-    fontWeight: "500",
-  },
-  toggleTextActive: {
-    fontWeight: "bold",
-  },
-  navbarContainer: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-  },
+  wrapper: { flex: 1, backgroundColor: "#fff", position: "relative" },
+  scroll: { paddingBottom: 100 },
+  container: { paddingTop: 60, paddingHorizontal: 20 },
+  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 24 },
+  greeting: { fontSize: 20, fontWeight: "bold", marginLeft: 10, color: "#4B3EA8" },
+  badge: { position: "absolute", top: -5, right: -8, backgroundColor: "#FF4D4D", borderRadius: 10, width: 20, height: 20, justifyContent: "center", alignItems: "center" },
+  badgeText: { color: "white", fontSize: 12, fontWeight: "bold" },
+  topCards: { flexDirection: "row", justifyContent: "space-between" },
+  cardGradient: { flex: 1, marginRight: 10, padding: 20, backgroundColor: "#F3F0FF", borderRadius: 16, alignItems: "center" },
+  cardBordered: { flex: 1, marginLeft: 10, padding: 20, borderRadius: 16, borderWidth: 1.5, borderColor: "#D7CFFF", alignItems: "center" },
+  cardTitle: { fontSize: 16, fontWeight: "600", color: "#4B3EA8" },
+  cardValue: { fontSize: 16, fontWeight: "500", color: "#4B3EA8" },
+  chartContainer: { marginTop: 30, backgroundColor: "#fff", padding: 16, borderRadius: 16, borderWidth: 1.5, borderColor: "#D7CFFF" },
+  toggleRow: { flexDirection: "row", marginBottom: 12 },
+  toggleButton: { marginRight: 16, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 8, backgroundColor: "#EFE9FE" },
+  toggleActive: { backgroundColor: "#D6CBF7" },
+  toggleText: { fontSize: 14, color: "#4B3EA8", fontWeight: "500" },
+  toggleTextActive: { fontWeight: "bold" },
+  navbarContainer: { position: "absolute", bottom: 0, left: 0, right: 0 },
 })
