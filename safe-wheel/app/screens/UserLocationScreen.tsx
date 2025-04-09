@@ -27,8 +27,8 @@ export default function UserLocationScreen() {
           const response = await axios.get("https://find-it-bersama-dia-safe-wheel.vercel.app/api/user_location", {
             params: { safewheel_id },
           })
-          const [lat, lon] = response.data.location_coordinates.split(",").map(Number)
-          setLocation({ latitude: lat, longitude: lon })
+          const { latitude, longitude } = response.data
+          setLocation({ latitude, longitude })
 
           const geo = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lon })
           if (geo.length > 0) {

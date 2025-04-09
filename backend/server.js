@@ -574,23 +574,24 @@ app.get("/api/user_location", async (req, res) => {
   }
 
   try {
-    // Get the user's location
     const user = await prisma.userWheelchair.findUnique({
       where: { safewheel_id },
-      select: { location_coordinates: true },
+      select: { latitude: true, longitude: true },
     });
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    res.status(200).json({ location_coordinates: user.location_coordinates });
+    res.status(200).json({
+      latitude: user.latitude,
+      longitude: user.longitude,
+    });
   } catch (err) {
     console.error("Get user location error:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
-
 // Start the server
 app.listen(PORT, () => {
   console.log(`Server is running`);
