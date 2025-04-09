@@ -538,11 +538,20 @@ app.get("/api/health_item/all", async (req, res) => {
 
 // ====== PUT LOCATION USER ======
 app.put("/api/user_location", async (req, res) => {
-  const { safewheel_id, latitude, longitude } = req.body;
+  const { safewheel_id, location_coordinates } = req.body;
 
-  if (!safewheel_id || latitude == null || longitude == null) {
-    return res.status(400).json({ message: "safewheel_id, latitude, and longitude are required." });
+  if (
+    !safewheel_id ||
+    !location_coordinates ||
+    location_coordinates.latitude == null ||
+    location_coordinates.longitude == null
+  ) {
+    return res.status(400).json({
+      message: "safewheel_id, latitude, and longitude are required.",
+    });
   }
+
+  const { latitude, longitude } = location_coordinates;
 
   try {
     const updated = await prisma.userWheelchair.update({
