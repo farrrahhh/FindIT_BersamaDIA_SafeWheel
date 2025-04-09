@@ -100,11 +100,22 @@ export default function LoginScreen({ navigation }: Props) {
         await AsyncStorage.setItem("safewheel_id", user.safewheel_id)
 
         if (expoToken && role === "guardian") {
-          await axios.post("https://find-it-bersama-dia-safe-wheel.vercel.app/api/expo-token", {
-            guardian_email: user.guardian_email || user.user_email || formData.email,
-            expo_token: expoToken,
-          })
-          console.log("✅ Expo token saved")
+          // Kirim token hanya jika belum tersimpan
+          if (!user.expo_token || user.expo_token !== expoToken) {
+            try {
+              await axios.post("https://find-it-bersama-dia-safe-wheel.vercel.app/api/expo-token", {
+                guardian_email: user.guardian_email || user.user_email,
+                expo_token: expoToken,
+              });
+              console.log("✅ Expo token saved");
+            } catch (err) {
+              console.error("❌ Failed to save expo token:", err);
+            }
+          } else {
+            console.log("ℹ️ Expo token already up-to-date");
+          }
+        } else {
+          console.warn("❗ Skipping token save: Missing email, role, or token");
         }
 
         navigation.navigate("Homepage")

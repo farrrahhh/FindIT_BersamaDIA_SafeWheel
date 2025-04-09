@@ -10,6 +10,7 @@ import SignupGuardian from '@/screens/SignUpGuardian.tsx';
 import Homepage from '@/screens/Homepage.tsx';
 import Emergency from '@/screens/Emergency.tsx';
 import Profile from '@/screens/Profile.tsx';
+import HistoryNotification from '@/screens/HistoryNotification.tsx';
 export type RootStackParamList = {
   Landing: undefined;
   Signup: undefined; 
@@ -74,6 +75,10 @@ export default function AppNavigator() {
       <Stack.Screen
         name="Profile"
         component={Profile}
+      />
+      <Stack.Screen
+        name="HistoryNotification"
+        component={HistoryNotification}
       />
       
 

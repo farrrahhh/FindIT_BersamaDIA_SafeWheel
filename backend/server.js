@@ -410,6 +410,30 @@ app.post("/api/expo-token", async (req, res) => {
     return res.status(500).json({ message: "Internal server error" });
   }
 });
+// ====== GET user safewheel name by safewheel id ======
+app.get("/api/user/safewheel_name", async (req, res) => {
+  const { safewheel_id } = req.query;
+
+  if (!safewheel_id) {
+    return res.status(400).json({ message: "safewheel_id is required" });
+  }
+
+  try {
+    const user = await prisma.userWheelchair.findUnique({
+      where: { safewheel_id },
+      select: { user_name: true },
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.status(200).json({ user_name: user.user_name });
+  } catch (err) {
+    console.error("Get user name error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
 
 // ====== POST health_item ======
 // POST /api/health_item

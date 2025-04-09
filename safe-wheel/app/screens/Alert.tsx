@@ -1,28 +1,59 @@
-import React from "react"
-import { View, Text, StyleSheet, Image, TouchableOpacity, SafeAreaView, StatusBar } from "react-native"
+import React, { useEffect, useState } from "react"
+import {
+  View,
+  Text,
+  StyleSheet,
+  Image,
+  TouchableOpacity,
+  SafeAreaView,
+  StatusBar,
+} from "react-native"
 import { useNavigation } from "@react-navigation/native"
 import { StackNavigationProp } from "@react-navigation/stack"
 import { RootStackParamList } from "../navigation/AppNavigator.tsx"
 import fall from "../../assets/images/fall.png"
+import AsyncStorage from "@react-native-async-storage/async-storage"
+import axios from "axios"
+
 export default function Alert() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>()
+  const [userName, setUserName] = useState("")
+
+  useEffect(() => {
+    const fetchUserName = async () => {
+      try {
+        const safewheel_id = await AsyncStorage.getItem("safewheel_id")
+        if (!safewheel_id) return
+
+        const res = await axios.get(
+          `https://find-it-bersama-dia-safe-wheel.vercel.app/api/user/safewheel_name`,
+          { params: { safewheel_id } }
+        )
+
+        setUserName(res.data.user_name || "User")
+      } catch (error) {
+        console.error("Failed to fetch user name", error)
+        setUserName("User")
+      }
+    }
+
+    fetchUserName()
+  }, [])
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
       <Text style={styles.alertTitle}>Alert!!</Text>
 
-      <Image
-        source={fall} 
-        style={styles.image}
-        resizeMode="contain"
-      />
+      <Image source={fall} style={styles.image} resizeMode="contain" />
 
-      <Text style={styles.description}>See Mattheuw’s{"\n"}Location Fast!</Text>
+      <Text style={styles.description}>
+        See {userName}’s{"\n"}Location Fast!
+      </Text>
 
       <TouchableOpacity
         style={styles.button}
-        onPress={() => navigation.navigate("UserLocation")} 
+        onPress={() => navigation.navigate("UserLocation")}
       >
         <Text style={styles.buttonText}>View Location</Text>
       </TouchableOpacity>
