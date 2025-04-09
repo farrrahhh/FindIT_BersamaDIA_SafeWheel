@@ -18,6 +18,8 @@ model UserWheelchair {
   bloodtype            String?                 @db.VarChar(5)
   emergency_number     String?                 @db.VarChar(20)
   location_coordinates String?                 @db.VarChar(255)
+  latitude             Float?
+  longitude            Float?  
   health_item          HealthItem[]
   alerts               UserAlertNotification[]
   guardians            UserGuardian[]
