@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useState, useEffect } from "react"
 import {
   SafeAreaView,
   ScrollView,
@@ -9,13 +9,15 @@ import {
   View,
   Image,
   StatusBar,
+  Platform,
 } from "react-native"
-import type { StackNavigationProp } from "@react-navigation/stack"
-import type { RootStackParamList } from "../navigation/AppNavigator"
-import { Feather } from "@expo/vector-icons"
+import * as Notifications from "expo-notifications"
+import Constants from "expo-constants"
+import AsyncStorage from "@react-native-async-storage/async-storage"
 import axios from "axios"
-import AsyncStorage from '@react-native-async-storage/async-storage'
-import usePushToken from "../usePushToken"
+import { Feather } from "@expo/vector-icons"
+import type { StackNavigationProp } from "@react-navigation/stack"
+import type { RootStackParamList } from "../navigation/AppNavigator.tsx"
 
 type LoginScreenNavigationProp = StackNavigationProp<RootStackParamList, "Login">
 
@@ -29,31 +31,42 @@ interface Props {
 }
 
 export default function LoginScreen({ navigation }: Props) {
-  const [formData, setFormData] = useState<LoginFormData>({
-    email: "",
-    password: "",
-  })
+  const [formData, setFormData] = useState<LoginFormData>({ email: "", password: "" })
   const [errors, setErrors] = useState<string[]>([])
   const [showPassword, setShowPassword] = useState(false)
   const [expoToken, setExpoToken] = useState<string | null>(null)
 
-  useEffect(() => {
-    const fetchToken = async () => {
-      const token = await usePushToken()
-      setExpoToken(token)
-    }
-    fetchToken()
-  }, [])
 
-  const isFieldValid = (field: keyof LoginFormData, value: string) => {
-    switch (field) {
-      case "email":
-        return value.includes("@")
-      case "password":
-        return value.length >= 8
-      default:
-        return true
+  useEffect(() => {
+    const registerForPushNotificationsAsync = async () => {
+      try {
+        const { status: existingStatus } = await Notifications.getPermissionsAsync()
+        let finalStatus = existingStatus
+  
+        if (existingStatus !== 'granted') {
+          const { status } = await Notifications.requestPermissionsAsync()
+          finalStatus = status
+        }
+  
+        if (finalStatus !== 'granted') {
+          console.log("❌ Push notification permission not granted")
+          return
+        }
+  
+        const token = (await Notifications.getExpoPushTokenAsync()).data
+        console.log("✅ Expo token:", token)
+        setExpoToken(token)
+      } catch (err) {
+        console.log("❌ Failed to get expo token:", err)
+      }
     }
+  
+    registerForPushNotificationsAsync()
+  }, [])
+  const isFieldValid = (field: keyof LoginFormData, value: string) => {
+    if (field === "email") return value.includes("@")
+    if (field === "password") return value.length >= 8
+    return true
   }
 
   const updateField = (field: keyof LoginFormData, value: string) => {
@@ -72,13 +85,10 @@ export default function LoginScreen({ navigation }: Props) {
   }
 
   const handleSubmit = async () => {
-    if (!validateForm()) return;
+    if (!validateForm()) return
 
     try {
-      const response = await axios.post(
-        "https://find-it-bersama-dia-safe-wheel.vercel.app/api/login",
-        formData
-      )
+      const response = await axios.post("https://find-it-bersama-dia-safe-wheel.vercel.app/api/login", formData)
 
       if (response.status === 200) {
         const { user, role } = response.data
@@ -110,30 +120,23 @@ export default function LoginScreen({ navigation }: Props) {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" />
-
-      {/* Background Gradient */}
+      {/* Background */}
       <View style={styles.backgroundBase} />
-
-      {/* Background Ellipse */}
       <Image
         source={{
           uri: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Ellipse%201-EM2yPl1ZNPz6MpoMyLUCP3QRxXs9Jx.png",
         }}
         style={styles.backgroundEllipse}
       />
-
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <SafeAreaView style={styles.safeArea}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-            accessibilityLabel="Go back"
-          >
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
             <Text style={styles.backText}>←</Text>
           </TouchableOpacity>
           <Text style={styles.header}>Log In</Text>
 
           <View style={styles.formContainer}>
+            {/* Email Input */}
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Email</Text>
               <TextInput
@@ -145,20 +148,15 @@ export default function LoginScreen({ navigation }: Props) {
                 placeholder="Enter your email"
                 placeholderTextColor="#a99fd6"
               />
-              {errors.includes("email") && (
-                <Text style={styles.errorText}>Please enter a valid email</Text>
-              )}
+              {errors.includes("email") && <Text style={styles.errorText}>Please enter a valid email</Text>}
             </View>
 
+            {/* Password Input */}
             <View style={styles.inputContainer}>
               <Text style={styles.label}>Password</Text>
               <View style={styles.passwordContainer}>
                 <TextInput
-                  style={[
-                    styles.input,
-                    styles.passwordInput,
-                    errors.includes("password") && styles.inputError,
-                  ]}
+                  style={[styles.input, styles.passwordInput, errors.includes("password") && styles.inputError]}
                   value={formData.password}
                   onChangeText={(text) => updateField("password", text)}
                   secureTextEntry={!showPassword}
@@ -169,13 +167,8 @@ export default function LoginScreen({ navigation }: Props) {
                 <TouchableOpacity
                   onPress={() => setShowPassword((prev) => !prev)}
                   style={styles.eyeButton}
-                  accessibilityLabel="Toggle password visibility"
                 >
-                  <Feather
-                  name={showPassword ? "eye-off" : "eye"}
-                  size={20}
-                  color="#493d9e"
-                />
+                  <Feather name={showPassword ? "eye-off" : "eye"} size={20} color="#493d9e" />
                 </TouchableOpacity>
               </View>
               {errors.includes("password") && (
@@ -183,19 +176,14 @@ export default function LoginScreen({ navigation }: Props) {
               )}
             </View>
 
-            <TouchableOpacity
-              style={[styles.button, styles.submitButton]}
-              onPress={handleSubmit}
-              accessibilityLabel="Log In"
-            >
+            {/* Login Button */}
+            <TouchableOpacity style={[styles.button, styles.submitButton]} onPress={handleSubmit}>
               <Text style={styles.buttonText}>Log In</Text>
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity
-            onPress={() => navigation.navigate("Signup")}
-            style={styles.signupLink}
-          >
+          {/* Link to Sign Up */}
+          <TouchableOpacity onPress={() => navigation.navigate("Signup")} style={styles.signupLink}>
             <Text style={styles.signupText}>
               Don't have an account? <Text style={styles.signupHighlight}>Sign Up</Text>
             </Text>

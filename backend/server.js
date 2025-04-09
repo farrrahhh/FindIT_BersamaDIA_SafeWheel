@@ -283,19 +283,18 @@ app.put("/api/user", async (req, res) => {
     return res.status(500).json({ message: "Server error" });
   }
 });
-
 // ====== POST USER ALERT NOTIFICATION ======
 app.post("/api/user_alert_notification", async (req, res) => {
   const { safewheel_id, alert_timestamp } = req.body;
 
-  if (!safewheel_id || !alert_timestamp) {
+  if (!safewheel_id) {
     return res
       .status(400)
-      .json({ message: "safewheel_id and alert_timestamp are required" });
+      .json({ message: "safewheel_id is required" });
   }
 
   try {
-    // Check if the safewheel_id exists in user_wheelchair
+    // Pastikan safewheel_id valid
     const wheelchairUser = await prisma.userWheelchair.findUnique({
       where: { safewheel_id },
     });
@@ -304,17 +303,24 @@ app.post("/api/user_alert_notification", async (req, res) => {
       return res.status(404).json({ message: "safewheel_id not found" });
     }
 
-    // Create the alert notification
+    // Gunakan alert_timestamp jika diberikan, kalau tidak pakai Date.now()
+    const timestamp = alert_timestamp ? new Date(alert_timestamp) : new Date();
+
+    // Simpan notifikasi alert
     const alertNotification = await prisma.userAlertNotification.create({
       data: {
-        safewheel_id: safewheel_id, // Ensure the field name matches your database schema
-        alert_timestamp: new Date(),
+        safewheel_id,
+        alert_timestamp: timestamp,
       },
     });
+
+    // Ambil semua guardian yang punya expo_token
     const guardians = await prisma.userGuardian.findMany({
       where: { safewheel_id },
       select: { guardian_email: true, expo_token: true },
     });
+
+    // Kirim notifikasi push ke guardian
     for (const guardian of guardians) {
       if (guardian.expo_token) {
         await sendPushNotification(
@@ -324,13 +330,15 @@ app.post("/api/user_alert_notification", async (req, res) => {
         );
       }
     }
-    res.status(201).json({
+
+    // Sukses
+    return res.status(201).json({
       message: "Alert notification created successfully",
       alert: alertNotification,
     });
   } catch (err) {
     console.error("Alert notification error:", err);
-    res.status(500).json({ message: "Server error" });
+    return res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -361,25 +369,42 @@ app.get("/api/user_alert_notification", async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
-// ====== POST TOKEN ======
+// ====== POST TOKEN (guardian or wheelchair) ======
 app.post("/api/expo-token", async (req, res) => {
-  const { guardian_email, expo_token } = req.body;
+  const { email, expo_token, role } = req.body;
 
-  if (!guardian_email || !expo_token) {
-    return res
-      .status(400)
-      .json({ message: "guardian_email and expo_token are required." });
+  if (!email || !expo_token || !role) {
+    return res.status(400).json({ message: "email, role, and expo_token are required." });
   }
 
   try {
-    const updated = await prisma.userGuardian.update({
-      where: { guardian_email },
-      data: { expo_token },
-    });
+    let updatedUser;
 
-    return res
-      .status(200)
-      .json({ message: "Expo token saved successfully.", data: updated });
+    if (role === "guardian") {
+      const existing = await prisma.userGuardian.findUnique({
+        where: { guardian_email: email },
+      });
+      if (!existing) return res.status(404).json({ message: "Guardian not found." });
+
+      updatedUser = await prisma.userGuardian.update({
+        where: { guardian_email: email },
+        data: { expo_token },
+      });
+    } else if (role === "wheelchair") {
+      const existing = await prisma.userWheelchair.findUnique({
+        where: { user_email: email },
+      });
+      if (!existing) return res.status(404).json({ message: "Wheelchair user not found." });
+
+      updatedUser = await prisma.userWheelchair.update({
+        where: { user_email: email },
+        data: { expo_token },
+      });
+    } else {
+      return res.status(400).json({ message: "Invalid role provided." });
+    }
+
+    return res.status(200).json({ message: "Expo token saved successfully.", data: updatedUser });
   } catch (error) {
     console.error("Failed to update expo_token:", error);
     return res.status(500).json({ message: "Internal server error" });

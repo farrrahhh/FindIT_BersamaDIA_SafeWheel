@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "safe-wheel",
+    "name": "safewheel",
     "slug": "safe-wheel",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -12,10 +12,12 @@
       "supportsTablet": true
     },
     "android": {
+      "googleServicesFile": "./android/app/google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.farrrah.safewheel"
     },
     "web": {
       "bundler": "metro",
@@ -36,6 +38,15 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "d3fd302b-fd44-4eee-90a6-5e469d345ba2"
+      }
+    },
+    "owner": "farrrah"
   }
 }
