@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, Linking } 
 import MapView, { Marker } from "react-native-maps"
 import * as Location from "expo-location"
 import { Ionicons } from "@expo/vector-icons"
-import Navbar from "../components/Navbar.tsx"
+import Navbar from "../components/Navbar"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import axios from "axios"
 
@@ -14,23 +14,26 @@ export default function UserLocationScreen() {
 
   useEffect(() => {
     (async () => {
-      const role = await AsyncStorage.getItem("role")
+      const role = await AsyncStorage.getItem("user_role")
       const safewheel_id = await AsyncStorage.getItem("safewheel_id")
 
       if (!safewheel_id) {
         setLoading(false)
         return
       }
+     
 
       if (role === "guardian") {
         try {
           const response = await axios.get("https://find-it-bersama-dia-safe-wheel.vercel.app/api/user_location", {
             params: { safewheel_id },
           })
+
           const { latitude, longitude } = response.data
           setLocation({ latitude, longitude })
+          
 
-          const geo = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lon })
+          const geo = await Location.reverseGeocodeAsync({ latitude, longitude })
           if (geo.length > 0) {
             const { street, district, subregion, city, region } = geo[0]
             const formatted = `${street ?? ""}, ${district ?? ""}, ${subregion ?? ""}, ${city ?? ""}, ${region ?? ""}`
@@ -52,21 +55,17 @@ export default function UserLocationScreen() {
         const loc = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Highest,
         })
-        setLocation({
-          latitude: loc.coords.latitude,
-          longitude: loc.coords.longitude,
-        })
 
-        const geo = await Location.reverseGeocodeAsync({
-          latitude: loc.coords.latitude,
-          longitude: loc.coords.longitude,
-        })
+        const { latitude, longitude } = loc.coords
+        setLocation({ latitude, longitude })
 
+        const geo = await Location.reverseGeocodeAsync({ latitude, longitude })
         if (geo.length > 0) {
           const { street, district, subregion, city, region } = geo[0]
           const formatted = `${street ?? ""}, ${district ?? ""}, ${subregion ?? ""}, ${city ?? ""}, ${region ?? ""}`
           setAddress(formatted)
         }
+
         setLoading(false)
       }
     })()

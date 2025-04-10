@@ -154,11 +154,18 @@ export default function Profile() {
         <TouchableOpacity
           style={styles.logoutButton}
           onPress={async () => {
-            await AsyncStorage.clear();
+            await AsyncStorage.multiRemove([
+              "token",
+              "email",
+              "safewheel_id",
+              "user_name",
+              "role",
+              // tambahkan apa pun yang kamu simpan saat login
+            ]);
             navigation.reset({
               index: 0,
               routes: [{ name: "Landing" }],
-            })
+            });
           }}
         >
           <Text style={styles.logoutText}>Log Out</Text>
