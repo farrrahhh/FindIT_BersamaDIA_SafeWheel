@@ -11,6 +11,7 @@ import Homepage from '@/screens/Homepage.tsx';
 import Emergency from '@/screens/Emergency.tsx';
 import Profile from '@/screens/Profile.tsx';
 import HistoryNotification from '@/screens/HistoryNotification.tsx';
+import Splash from '../screens/SplashScreen.tsx';
 export type RootStackParamList = {
   Landing: undefined;
   Signup: undefined; 
@@ -30,7 +31,7 @@ const Stack = createStackNavigator<RootStackParamList>();
 export default function AppNavigator() {
   return (
     <Stack.Navigator
-      initialRouteName="Landing"
+      initialRouteName="Splash"
       screenOptions={{
         headerShown: false
       }}
@@ -79,6 +80,10 @@ export default function AppNavigator() {
       <Stack.Screen
         name="HistoryNotification"
         component={HistoryNotification}
+      />
+      <Stack.Screen
+        name="Splash"
+        component={Splash}
       />
       
 
