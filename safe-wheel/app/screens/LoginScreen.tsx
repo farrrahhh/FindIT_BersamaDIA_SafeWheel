@@ -276,14 +276,15 @@ const styles = StyleSheet.create({
   eyeButton: {
     position: "absolute",
     right: 10,
-    top: "50%",
     transform: [{ translateY: -10 }],
     padding: 8,
+    top: 20,
+
   },
   eyeIcon: {
     fontSize: 18,
     color: "#493d9e",
-    marginTop: -7,
+    marginTop: 10,
   },
   inputError: {
     borderColor: "#ff6b6b",

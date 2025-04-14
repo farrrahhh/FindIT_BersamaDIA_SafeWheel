@@ -35,7 +35,7 @@ export default function RegisterChoices() {
         </TouchableOpacity>
 
         <SafeAreaView style={styles.safeArea}>
-          <Text style={styles.title}>Siapakah{"\n"}kamu?</Text>
+          <Text style={styles.title}>Who Are{"\n"}You?</Text>
 
           <View style={styles.optionsContainer}>
             <TouchableOpacity
@@ -46,7 +46,7 @@ export default function RegisterChoices() {
               <View style={styles.optionImageWrapper}>
                 <Image source={kursiroda} style={styles.optionImage} />
               </View>
-              <Text style={styles.optionText}>Pengguna Kursi Roda</Text>
+              <Text style={styles.optionText}>Wheelchair User</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -57,7 +57,7 @@ export default function RegisterChoices() {
               <View style={styles.optionImageWrapper}>
                 <Image source={perawat} style={styles.optionImage} />
               </View>
-              <Text style={styles.optionText}>Keluarga / Perawat</Text>
+              <Text style={styles.optionText}>Family / Guardian</Text>
             </TouchableOpacity>
           </View>
         </SafeAreaView>
