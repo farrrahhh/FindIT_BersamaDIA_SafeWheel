@@ -8,9 +8,9 @@ SafeWheel is a smart health monitoring and alert system designed for wheelchair 
 - Clement Nathanael Lim – Hustler
 
 ## 📁 Project Structure
-├── backend              # Express.js backend (Prisma, Vercel deployed)
-├── iot                  # ESP32 code (MPU6050, MAX30100, GPS)
-├── safe-wheel           # React Native (Expo) app
+- backend       # Express.js backend (Prisma, Vercel deployed)
+- iot           # ESP32 code (MPU6050, MAX30100, GPS)
+- safe-wheel    # React Native (Expo) app
 
 ## 🚀 Features
 
