@@ -107,7 +107,7 @@ export default function UserLocationScreen() {
       </MapView>
 
       <View style={styles.infoBox}>
-        <Text style={styles.title}>Kamu ada di sini!</Text>
+        <Text style={styles.title}>You are here!</Text>
         <Ionicons name="location-outline" size={32} color="#A28EFF" style={{ marginBottom: 6 }} />
         <Text style={styles.address}>{address || "Memuat alamat..."}</Text>
 

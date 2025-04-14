@@ -134,21 +134,21 @@ export default function Profile() {
 
         {role === "wheelchair" && userData && (
           <>
-            {renderItem("Nama", userData.user_name, "user_name")}
-            {renderItem("Tanggal Lahir", formatDate(userData.dob), "dob")}
-            {renderItem("Jenis Kelamin", userData.sex, "sex")}
-            {renderItem("Golongan Darah", userData.bloodtype, "bloodtype")}
-            {renderItem("No. Telepon", userData.emergency_number, "emergency_number")}
+            {renderItem("Name", userData.user_name, "user_name")}
+            {renderItem("Date of Birth", formatDate(userData.dob), "dob")}
+            {renderItem("Gender", userData.sex, "sex")}
+            {renderItem("Blood Type", userData.bloodtype, "bloodtype")}
+            {renderItem("Phone", userData.emergency_number, "emergency_number")}
             {renderItem("Email", userData.user_email, "user_email")}
-            {renderItem("Ubah Password", "********", "password")}
+            {renderItem("Change Password", "********", "password")}
           </>
         )}
 
         {role === "guardian" && userData && (
           <>
-            {renderItem("Nama", userData.guardian_name, "guardian_name")}
+            {renderItem("Name", userData.guardian_name, "guardian_name")}
             {renderItem("Email", userData.guardian_email, "guardian_email")}
-            {renderItem("Ubah Password", "********", "password")}
+            {renderItem("Change Password", "********", "password")}
           </>
         )}
         <TouchableOpacity

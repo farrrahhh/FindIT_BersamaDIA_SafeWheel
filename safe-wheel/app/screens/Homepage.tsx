@@ -1,4 +1,3 @@
-// Homepage.tsx
 import React, { useEffect, useState, useCallback } from "react"
 import {
   View,
@@ -18,6 +17,7 @@ import { StackNavigationProp } from "@react-navigation/stack"
 import { RootStackParamList } from "../navigation/AppNavigator.ts"
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from "axios"
+import * as Location from "expo-location"
 
 const screenWidth = Dimensions.get("window").width
 
@@ -37,13 +37,13 @@ export default function Homepage() {
       const fetchData = async () => {
         const name = await AsyncStorage.getItem("user_name")
         setStoredName(name || "")
-  
+
         const roleStored = await AsyncStorage.getItem("user_role")
         setRole(roleStored)
-  
+
         const safewheel_id = await AsyncStorage.getItem("safewheel_id")
         if (!safewheel_id) return
-  
+
         try {
           const response = await axios.get(
             `https://find-it-bersama-dia-safe-wheel.vercel.app/api/user_alert_notification?safewheel_id=${safewheel_id}`
@@ -51,50 +51,71 @@ export default function Homepage() {
           const all = response.data.alerts
           const read = await AsyncStorage.getItem("read_alert_ids")
           const readIds = read ? JSON.parse(read) : []
-  
+
           const unread = all.filter((alert: any) => {
             const key = `${alert.safewheel_id}-${alert.alert_timestamp}`
             return !readIds.includes(key)
           })
-  
+
           setUnreadCount(unread.length)
         } catch (e) {
           console.log("Failed to fetch alerts", e)
         }
       }
-  
+
       fetchData()
     }, [])
   )
+
+  useEffect(() => {
+    const updateLocation = async () => {
+      const userRole = await AsyncStorage.getItem("user_role")
+      if (userRole !== "wheelchair") return
+
+      const { status } = await Location.requestForegroundPermissionsAsync()
+      if (status !== "granted") return
+
+      const location = await Location.getCurrentPositionAsync({})
+      const safewheel_id = await AsyncStorage.getItem("safewheel_id")
+      if (!safewheel_id) return
+
+      await axios.put("https://find-it-bersama-dia-safe-wheel.vercel.app/api/user_location", {
+        safewheel_id,
+        location_coordinates: {
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude
+        }
+      })
+    }
+
+    updateLocation()
+  }, [])
+
   useEffect(() => {
     const fetchChart = async () => {
       const safewheel_id = await AsyncStorage.getItem("safewheel_id")
       if (!safewheel_id) return
       setLoading(true)
-  
+
       try {
         const response = await axios.get(
           `https://find-it-bersama-dia-safe-wheel.vercel.app/api/health_item/all?safewheel_id=${safewheel_id}`
         )
         const items = response.data.healthItems
-  
-        // Hitung jumlah data per tanggal
+
         const dateCountMap: Record<string, number> = {}
         items.forEach((item: any) => {
           const dateOnly = new Date(item.user_timestamp).toISOString().split("T")[0]
           dateCountMap[dateOnly] = (dateCountMap[dateOnly] || 0) + 1
         })
-  
-        // Ambil tanggal dengan data terbanyak
+
         const mostFrequentDate = Object.entries(dateCountMap).sort((a, b) => b[1] - a[1])[0][0]
-  
-        // Filter hanya data dari tanggal tersebut
+
         const todayItems = items.filter((item: any) => {
           const dateOnly = new Date(item.user_timestamp).toISOString().split("T")[0]
           return dateOnly === mostFrequentDate
         })
-  
-        // Ambil satu data per jam
+
         const seenHours = new Set()
         const filteredByHour: any[] = []
         for (const item of todayItems) {
@@ -105,16 +126,15 @@ export default function Homepage() {
             filteredByHour.push(item)
           }
         }
-  
-        // Urutkan dari jam kecil ke besar
+
         filteredByHour.sort(
           (a, b) => new Date(a.user_timestamp).getTime() - new Date(b.user_timestamp).getTime()
         )
-  
+
         const labels: string[] = []
         const heartData: number[] = []
         const oxygenData: number[] = []
-  
+
         filteredByHour.forEach((item) => {
           const date = new Date(item.user_timestamp)
           const timeLabel = `${date.getHours().toString().padStart(2, "0")}:00`
@@ -122,10 +142,10 @@ export default function Homepage() {
           heartData.push(item.heartrate ?? 0)
           oxygenData.push(item.oxylevel ?? 0)
         })
-  
+
         setLatestHeartRate(heartData[heartData.length - 1] || 0)
         setLatestOxygen(oxygenData[oxygenData.length - 1] || 0)
-  
+
         setChartData({
           labels,
           datasets: [
@@ -142,7 +162,7 @@ export default function Homepage() {
         setLoading(false)
       }
     }
-  
+
     fetchChart()
   }, [activeData])
 
