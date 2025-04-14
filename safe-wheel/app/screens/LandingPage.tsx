@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
     marginLeft: 20,
   },
   headerText: {
-    fontSize: 60,
+    fontSize: 70,
     fontWeight: "bold",
     color: "#493d9e",
     lineHeight: 70,
@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
   },
   wheelchairImage: {
     position: "absolute",
-    left: 150,
+    left: 140,
     bottom: 300,
     width: 300,
     height: 300,
@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
   },
   greetingText: {
     fontSize: 24,
-    color: "#8174a0",
+    color: "#493d9e",
     fontWeight: "500",
     fontFamily: "sans-serif-medium",
   },
