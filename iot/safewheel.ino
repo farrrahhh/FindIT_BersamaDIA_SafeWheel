@@ -5,7 +5,7 @@
 #include <HardwareSerial.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
-
+#include <time.h>
 // WiFi credentials
 const char* ssid = "esp32";
 const char* password = "bersamadia";
@@ -50,6 +50,14 @@ void setup() {
     Serial.print(".");
   }
   Serial.println("\n✅ WiFi terhubung!");
+  // Konfigurasi NTP
+  configTime(0, 0, "pool.ntp.org", "time.nist.gov");
+  Serial.print("⏳ Sinkronisasi waktu NTP...");
+  while (time(nullptr) < 100000) {
+    delay(100);
+    Serial.print(".");
+  }
+  Serial.println("\n✅ Waktu NTP siap!");
 
   // GPS
   gpsSerial.begin(GPS_BAUD, SERIAL_8N1, RXD2, TXD2);
@@ -73,15 +81,15 @@ void setup() {
 }
 
 String getISOTimestamp() {
-  if (gps.date.isValid() && gps.time.isValid()) {
-    char iso[30];
-    sprintf(iso, "2025-%02d-%02dT%02d:%02d:%02d.000Z",
-            gps.date.month(), gps.date.day(),
-            gps.time.hour(), gps.time.minute(), gps.time.second());
-    return String(iso);
-  } else {
-    return "";  // GPS belum fix
-  }
+  time_t now = time(nullptr);
+  struct tm* timeinfo = gmtime(&now); // UTC time
+
+  char iso[30];
+  sprintf(iso, "%04d-%02d-%02dT%02d:%02d:%02d.000Z",
+          timeinfo->tm_year + 1900, timeinfo->tm_mon + 1,
+          timeinfo->tm_mday, timeinfo->tm_hour,
+          timeinfo->tm_min, timeinfo->tm_sec);
+  return String(iso);
 }
 
 void loop() {
@@ -101,9 +109,10 @@ void loop() {
   if (millis() - lastReport > REPORTING_PERIOD_MS) {
     lastReport = millis();
     String isoTime = getISOTimestamp();
-    if (isoTime == "") {
-      Serial.println("❌ GPS belum fix waktu, skip update...");
-      return;
+    if (gps.date.isValid() && gps.time.isValid()) {
+      Serial.println("🛰️ GPS waktu fix digunakan");
+    } else {
+      Serial.println("⚠️ GPS belum fix, pakai waktu lokal fallback");
     }
 
     float bpm = pox.getHeartRate();

@@ -1,0 +1,10 @@
+// eas.json
+{
+    "build": {
+      "preview": {
+        "android": {
+          "buildType": "apk"
+        }
+      }
+    }
+  }
