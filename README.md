@@ -1,6 +1,11 @@
-# 🦽 SafeWheel
+# 🦽 SafeWheel - BersamaDia
 
 SafeWheel is a smart health monitoring and alert system designed for wheelchair users and their guardians. It combines a React Native mobile application, an IoT device using ESP32, and a backend API to provide real-time health tracking and fall detection.
+
+## 👥 Developer Member
+- Mattheuw Suciadi – Hipster
+- Farrah Aulia – Hacker
+- Clement Nathanael Lim – Hustler
 
 ## 📁 Project Structure
 ├── backend              # Express.js backend (Prisma, Vercel deployed)
