@@ -30,16 +30,20 @@ export default function Homepage() {
   const [loading, setLoading] = useState(true)
   const [latestHeartRate, setLatestHeartRate] = useState(0)
   const [latestOxygen, setLatestOxygen] = useState(0)
+  const [role, setRole] = useState<string | null>(null)
 
   useFocusEffect(
     useCallback(() => {
       const fetchData = async () => {
         const name = await AsyncStorage.getItem("user_name")
         setStoredName(name || "")
-
+  
+        const roleStored = await AsyncStorage.getItem("user_role")
+        setRole(roleStored)
+  
         const safewheel_id = await AsyncStorage.getItem("safewheel_id")
         if (!safewheel_id) return
-
+  
         try {
           const response = await axios.get(
             `https://find-it-bersama-dia-safe-wheel.vercel.app/api/user_alert_notification?safewheel_id=${safewheel_id}`
@@ -47,42 +51,49 @@ export default function Homepage() {
           const all = response.data.alerts
           const read = await AsyncStorage.getItem("read_alert_ids")
           const readIds = read ? JSON.parse(read) : []
-
+  
           const unread = all.filter((alert: any) => {
             const key = `${alert.safewheel_id}-${alert.alert_timestamp}`
             return !readIds.includes(key)
           })
-
+  
           setUnreadCount(unread.length)
         } catch (e) {
           console.log("Failed to fetch alerts", e)
         }
       }
-
+  
       fetchData()
     }, [])
   )
-
   useEffect(() => {
     const fetchChart = async () => {
       const safewheel_id = await AsyncStorage.getItem("safewheel_id")
       if (!safewheel_id) return
       setLoading(true)
-
+  
       try {
-        const response = await axios.get(`https://find-it-bersama-dia-safe-wheel.vercel.app/api/health_item/all?safewheel_id=${safewheel_id}`)
+        const response = await axios.get(
+          `https://find-it-bersama-dia-safe-wheel.vercel.app/api/health_item/all?safewheel_id=${safewheel_id}`
+        )
         const items = response.data.healthItems
-
-        const today = new Date()
-        const todayItems = items.filter((item: any) => {
-          const date = new Date(item.user_timestamp)
-          return (
-            date.getDate() === today.getDate() &&
-            date.getMonth() === today.getMonth() &&
-            date.getFullYear() === today.getFullYear()
-          )
+  
+        // Hitung jumlah data per tanggal
+        const dateCountMap: Record<string, number> = {}
+        items.forEach((item: any) => {
+          const dateOnly = new Date(item.user_timestamp).toISOString().split("T")[0]
+          dateCountMap[dateOnly] = (dateCountMap[dateOnly] || 0) + 1
         })
-
+  
+        // Ambil tanggal dengan data terbanyak
+        const mostFrequentDate = Object.entries(dateCountMap).sort((a, b) => b[1] - a[1])[0][0]
+  
+        // Filter hanya data dari tanggal tersebut
+        const todayItems = items.filter((item: any) => {
+          const dateOnly = new Date(item.user_timestamp).toISOString().split("T")[0]
+          return dateOnly === mostFrequentDate
+        })
+  
         // Ambil satu data per jam
         const seenHours = new Set()
         const filteredByHour: any[] = []
@@ -94,14 +105,16 @@ export default function Homepage() {
             filteredByHour.push(item)
           }
         }
-
+  
         // Urutkan dari jam kecil ke besar
-        filteredByHour.sort((a, b) => new Date(a.user_timestamp).getTime() - new Date(b.user_timestamp).getTime())
-
+        filteredByHour.sort(
+          (a, b) => new Date(a.user_timestamp).getTime() - new Date(b.user_timestamp).getTime()
+        )
+  
         const labels: string[] = []
         const heartData: number[] = []
         const oxygenData: number[] = []
-
+  
         filteredByHour.forEach((item) => {
           const date = new Date(item.user_timestamp)
           const timeLabel = `${date.getHours().toString().padStart(2, "0")}:00`
@@ -109,10 +122,10 @@ export default function Homepage() {
           heartData.push(item.heartrate ?? 0)
           oxygenData.push(item.oxylevel ?? 0)
         })
-
+  
         setLatestHeartRate(heartData[heartData.length - 1] || 0)
         setLatestOxygen(oxygenData[oxygenData.length - 1] || 0)
-
+  
         setChartData({
           labels,
           datasets: [
@@ -129,7 +142,7 @@ export default function Homepage() {
         setLoading(false)
       }
     }
-
+  
     fetchChart()
   }, [activeData])
 
@@ -153,6 +166,7 @@ export default function Homepage() {
               <Ionicons name="person-circle-outline" size={32} color="#4B3EA8" />
               <Text style={styles.greeting}>Hi, {storedName}</Text>
             </TouchableOpacity>
+            {role !== "wheelchair" && (
             <TouchableOpacity onPress={handleNotificationPress} style={{ position: "relative" }}>
               <Feather name="bell" size={24} color="#4B3EA8" />
               {unreadCount > 0 && (
@@ -161,6 +175,7 @@ export default function Homepage() {
                 </View>
               )}
             </TouchableOpacity>
+          )}
           </View>
 
           <View style={styles.topCards}>
