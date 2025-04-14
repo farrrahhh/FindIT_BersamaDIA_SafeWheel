@@ -7,6 +7,17 @@ SafeWheel is a smart health monitoring and alert system designed for wheelchair 
 - Farrah Aulia – Hacker
 - Clement Nathanael Lim – Hustler
 
+## Login and Signup
+Users can’t register by themselves because the IoT device has a unique SafeWheel ID for each unit. Therefore, you can only register as a guardian using the SafeWheel ID SW8X9Z2L1Q.
+User wheelchair:
+email: user1@gmail.com
+pass: User#1234
+
+User guardian (it can be many for each wheelchair):
+example:
+email: user2@gmail.com
+pass: User#1234
+
 ## 📁 Project Structure
 - backend       # Express.js backend (Prisma, Vercel deployed)
 - iot           # ESP32 code (MPU6050, MAX30100, GPS)
