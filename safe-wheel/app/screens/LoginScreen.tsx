@@ -109,13 +109,13 @@ export default function LoginScreen({ navigation }: Props) {
               });
               console.log("✅ Expo token saved");
             } catch (err) {
-              console.error("❌ Failed to save expo token:", err);
+              
             }
           } else {
-            console.log("ℹ️ Expo token already up-to-date");
+            
           }
         } else {
-          console.warn("❗ Skipping token save: Missing email, role, or token");
+         
         }
 
         navigation.navigate("Homepage")

@@ -27,21 +27,20 @@ export default function HistoryNotification() {
   const [sections, setSections] = useState<Section[]>([])
   const [loading, setLoading] = useState(true)
   const navigation = useNavigation()
-
   useEffect(() => {
     const fetchNotifications = async () => {
       try {
         const safewheel_id = await AsyncStorage.getItem("safewheel_id")
         if (!safewheel_id) return
-
+  
         const response = await axios.get(
           `https://find-it-bersama-dia-safe-wheel.vercel.app/api/user_alert_notification`,
           { params: { safewheel_id } }
         )
-
+  
         const storedReadIds = await AsyncStorage.getItem("read_alert_ids")
         const readIds = storedReadIds ? JSON.parse(storedReadIds) : []
-
+  
         const enriched: AlertItem[] = response.data.alerts.map((alert: AlertItem) => {
           const key = `${alert.safewheel_id}-${alert.alert_timestamp}`
           return {
@@ -49,19 +48,27 @@ export default function HistoryNotification() {
             is_read: readIds.includes(key),
           }
         })
-
+  
+        // Kelompokkan berdasarkan tanggal
         const grouped: { [date: string]: AlertItem[] } = {}
         enriched.forEach((item) => {
-          const dateKey = new Date(item.alert_timestamp).toLocaleDateString()
+          const dateKey = new Date(item.alert_timestamp).toLocaleDateString("en-CA") // yyyy-mm-dd
           if (!grouped[dateKey]) grouped[dateKey] = []
           grouped[dateKey].push(item)
         })
-
-        const groupedSections: Section[] = Object.entries(grouped).map(([title, data]) => ({
-          title,
-          data,
-        }))
-
+  
+        // Ubah ke Section[], sort jam terbaru di setiap tanggal, dan tanggal terbaru duluan
+        const groupedSections: Section[] = Object.entries(grouped)
+          .map(([title, data]) => ({
+            title,
+            data: data.sort((a, b) =>
+              new Date(b.alert_timestamp).getTime() - new Date(a.alert_timestamp).getTime()
+            ),
+          }))
+          .sort((a, b) =>
+            new Date(b.title).getTime() - new Date(a.title).getTime()
+          )
+  
         setSections(groupedSections)
         setLoading(false)
       } catch (err) {
@@ -69,7 +76,7 @@ export default function HistoryNotification() {
         setLoading(false)
       }
     }
-
+  
     fetchNotifications()
   }, [])
 
